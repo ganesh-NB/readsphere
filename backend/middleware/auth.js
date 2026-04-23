@@ -30,4 +30,6 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+module.exports = protect;
+module.exports.admin = admin;
+module.exports.protect = protect;

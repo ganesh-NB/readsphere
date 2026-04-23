@@ -5,28 +5,28 @@ import Footer from './components/Footer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
+import Discover from './pages/Discover';
 import BookDetails from './pages/BookDetails';
 import Reader from './pages/Reader';
 import Admin from './pages/Admin';
-
-// Dummy Pages for routing skeleton
-const Books = () => <div className="container" style={{paddingTop: '120px', minHeight: '80vh'}}><h1>Books Library</h1></div>;
-const Dashboard = () => <div className="container" style={{paddingTop: '120px', minHeight: '80vh'}}><h1>User Dashboard</h1></div>;
+import Profile from './pages/Profile';
+import UploadBook from './pages/UploadBook';
 
 const App = () => {
   return (
     <Router>
-      <div className="app-container">
+      <div className="flex flex-col min-h-screen">
         <Navbar />
-        <main>
+        <main className="flex-grow pt-[80px]">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/books" element={<Books />} />
+            <Route path="/discover" element={<Discover />} />
             <Route path="/book/:id" element={<BookDetails />} />
             <Route path="/read/:id" element={<Reader />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/upload" element={<UploadBook />} />
             <Route path="/admin/*" element={<Admin />} />
           </Routes>
         </main>

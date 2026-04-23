@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { generateSummary, getRecommendations } = require('../controllers/aiController');
-const { protect } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 router.post('/summary', generateSummary);
-router.get('/recommendations', protect, getRecommendations);
+router.get('/recommendations', auth, getRecommendations);
 
 module.exports = router;
