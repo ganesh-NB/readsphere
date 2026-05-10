@@ -98,10 +98,9 @@ const bookSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp on save
-bookSchema.pre('save', function(next) {
+// Update timestamp on save (Mongoose 9 — no next() in async middleware)
+bookSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Index for search

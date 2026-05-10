@@ -11,6 +11,9 @@
 - [Login.jsx](file://frontend/src/pages/Login.jsx)
 - [Register.jsx](file://frontend/src/pages/Register.jsx)
 - [Dashboard.jsx](file://frontend/src/pages/Dashboard.jsx)
+- [Discover.jsx](file://frontend/src/pages/Discover.jsx)
+- [Profile.jsx](file://frontend/src/pages/Profile.jsx)
+- [UploadBook.jsx](file://frontend/src/pages/UploadBook.jsx)
 - [BookDetails.jsx](file://frontend/src/pages/BookDetails.jsx)
 - [Reader.jsx](file://frontend/src/pages/Reader.jsx)
 - [Admin.jsx](file://frontend/src/pages/Admin.jsx)
@@ -19,28 +22,38 @@
 - [tailwind.config.js](file://frontend/tailwind.config.js)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for new page components: Discover, Profile, and UploadBook
+- Enhanced BookCard component documentation with improved styling and functionality
+- Updated Navbar component documentation with new navigation features and user authentication
+- Expanded component architecture overview to include advanced page components
+- Added detailed analysis of new user-centric features and enhanced UI components
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Advanced Page Components](#advanced-page-components)
+7. [Enhanced UI Components](#enhanced-ui-components)
+8. [Dependency Analysis](#dependency-analysis)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes ReadSphere’s React component architecture with a focus on the component hierarchy starting from the root App component and route-based page components. It explains reusable UI components such as Navbar, BookCard, and Footer, detailing their props, styling, and interaction patterns. It also documents page components including Home, Login, Register, Dashboard, BookDetails, Reader, and Admin, covering their specific functionality and data requirements. The document covers component composition patterns, state management approaches, and prop drilling solutions, along with styling implementation using Tailwind CSS, responsive design patterns, interactive state handling, component lifecycle, event handling, and integration with the API service layer.
+This document describes ReadSphere's React component architecture with a focus on the component hierarchy starting from the root App component and route-based page components. The architecture has been comprehensively enhanced with advanced page components including Discover, Profile, and UploadBook, along with significantly improved UI components featuring enhanced styling and functionality. The system emphasizes user-centric features, comprehensive book discovery, personalization capabilities, and community-driven content sharing.
 
 ## Project Structure
-The frontend is organized by feature and responsibility:
+The frontend is organized by feature and responsibility with a sophisticated component hierarchy:
 - Root entry renders the application shell and mounts the router.
-- Routing defines the page-level components.
-- Reusable UI components live under components/.
-- Page components live under pages/.
-- Services encapsulate API integrations.
-- Styling is centralized in index.css with Tailwind configuration.
+- Routing defines the page-level components including new advanced features.
+- Reusable UI components live under components/ with enhanced functionality.
+- Page components live under pages/ with comprehensive user interaction capabilities.
+- Services encapsulate API integrations with Project Gutenberg and custom backend.
+- Styling is centralized in index.css with Tailwind configuration supporting advanced animations.
 
 ```mermaid
 graph TB
@@ -51,6 +64,9 @@ end
 subgraph "Routing"
 ROUTES["React Router Routes"]
 HOME["Home.jsx"]
+DISCOVER["Discover.jsx"]
+PROFILE["Profile.jsx"]
+UPLOAD["UploadBook.jsx"]
 LOGIN["Login.jsx"]
 REGISTER["Register.jsx"]
 DASHBOARD["Dashboard.jsx"]
@@ -69,6 +85,9 @@ end
 MAIN --> APP
 APP --> ROUTES
 ROUTES --> HOME
+ROUTES --> DISCOVER
+ROUTES --> PROFILE
+ROUTES --> UPLOAD
 ROUTES --> LOGIN
 ROUTES --> REGISTER
 ROUTES --> DASHBOARD
@@ -76,9 +95,14 @@ ROUTES --> BOOKDETAILS
 ROUTES --> READER
 ROUTES --> ADMIN
 HOME --> BOOCCARD
+DISCOVER --> BOOCCARD
+PROFILE --> BOOCCARD
 BOOKDETAILS --> BOOCCARD
 DASHBOARD --> BOOCCARD
 HOME --> API
+DISCOVER --> API
+PROFILE --> API
+UPLOAD --> API
 BOOKDETAILS --> API
 READER --> API
 ADMIN --> API
@@ -89,77 +113,82 @@ APP --> FOOTER
 **Diagram sources**
 - [main.jsx:1-11](file://frontend/src/main.jsx#L1-L11)
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
-- [Home.jsx:1-483](file://frontend/src/pages/Home.jsx#L1-L483)
-- [Login.jsx:1-84](file://frontend/src/pages/Login.jsx#L1-L84)
-- [Register.jsx:1-99](file://frontend/src/pages/Register.jsx#L1-L99)
-- [Dashboard.jsx:1-159](file://frontend/src/pages/Dashboard.jsx#L1-L159)
-- [BookDetails.jsx:1-225](file://frontend/src/pages/BookDetails.jsx#L1-L225)
-- [Reader.jsx:1-178](file://frontend/src/pages/Reader.jsx#L1-L178)
-- [Admin.jsx:1-174](file://frontend/src/pages/Admin.jsx#L1-L174)
-- [BookCard.jsx:1-58](file://frontend/src/components/BookCard.jsx#L1-L58)
-- [Navbar.jsx:1-56](file://frontend/src/components/Navbar.jsx#L1-L56)
+- [Discover.jsx:1-452](file://frontend/src/pages/Discover.jsx#L1-L452)
+- [Profile.jsx:1-333](file://frontend/src/pages/Profile.jsx#L1-L333)
+- [UploadBook.jsx:1-230](file://frontend/src/pages/UploadBook.jsx#L1-L230)
+- [BookCard.jsx:1-76](file://frontend/src/components/BookCard.jsx#L1-L76)
+- [Navbar.jsx:1-172](file://frontend/src/components/Navbar.jsx#L1-L172)
 - [Footer.jsx:1-74](file://frontend/src/components/Footer.jsx#L1-L74)
-- [api.js:1-284](file://frontend/src/services/api.js#L1-L284)
+- [api.js:1-308](file://frontend/src/services/api.js#L1-L308)
 
 **Section sources**
 - [main.jsx:1-11](file://frontend/src/main.jsx#L1-L11)
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
 
 ## Core Components
-This section documents reusable UI components and their roles.
+This section documents reusable UI components and their enhanced roles in the comprehensive architecture.
 
-- Navbar
-  - Purpose: Fixed header navigation with responsive mobile menu, scroll-aware styling, and active-link highlighting.
-  - Props: None.
-  - State: Tracks scroll position and mobile menu open state.
-  - Interactions: Toggles mobile menu, updates active link based on current location.
-  - Styling: Uses Tailwind utilities for backdrop blur, gradients, transitions, and responsive layout.
-  - Lifecycle: Adds and removes scroll event listener on mount/unmount.
+### Enhanced Navbar Component
+- **Purpose**: Advanced fixed header navigation with responsive mobile menu, scroll-aware styling, active-link highlighting, and user authentication integration.
+- **Props**: None.
+- **State**: Tracks scroll position, mobile menu open state, user authentication status, and navigation items visibility based on user role.
+- **Interactions**: Toggles mobile menu, updates active link based on current location, handles user logout, and conditionally renders admin panel access.
+- **Styling**: Uses Tailwind utilities for backdrop blur, gradients, transitions, responsive layout, and dynamic user interface elements.
+- **Lifecycle**: Adds and removes scroll event listener on mount/unmount, listens for storage changes for real-time user state updates.
+- **Enhanced Features**: Dynamic navigation items based on user authentication, admin panel access for authorized users, and responsive design improvements.
 
-- BookCard
-  - Purpose: Compact book tile with cover image, rating badge, category tag, hover overlay with “Read Now” action, and skeleton loading.
-  - Props: book (object with id/_id, title, author, category, rating, coverImage).
-  - State: Tracks image load completion to swap skeleton for image.
-  - Interactions: Navigates to book details page on click.
-  - Styling: Glass panel, gradient overlays, hover transforms, and responsive aspect ratios.
+### Enhanced BookCard Component
+- **Purpose**: Sophisticated book tile with cover image, rating badge, category tag, advanced hover overlay with conditional "Read Now" or "View Details" actions, and skeleton loading.
+- **Props**: book (object with id/_id, title, author, category, rating, coverImage, fileUrl).
+- **State**: Tracks image load completion to swap skeleton for image and manages hover states.
+- **Interactions**: Navigates to book details page or reader based on file availability, provides gradient glow effects on hover.
+- **Styling**: Advanced glass panel effects, gradient overlays, hover transforms with scale animations, responsive aspect ratios, and sophisticated shadow effects.
+- **Enhanced Functionality**: Conditional rendering based on file availability, improved accessibility with proper ARIA labels, and enhanced visual feedback.
 
-- Footer
-  - Purpose: Multi-column footer with brand identity, links, and social media.
-  - Props: None.
-  - State: None.
-  - Interactions: Links navigate internally or externally.
-  - Styling: Responsive grid layout, gradient accents, and hover effects.
+### Enhanced Footer Component
+- **Purpose**: Comprehensive multi-column footer with brand identity, extensive links, social media integration, and responsive design.
+- **Props**: None.
+- **State**: None.
+- **Interactions**: Links navigate internally or externally with proper routing.
+- **Styling**: Responsive grid layout, gradient accents, hover effects, and improved visual hierarchy.
 
 **Section sources**
-- [Navbar.jsx:1-56](file://frontend/src/components/Navbar.jsx#L1-L56)
-- [BookCard.jsx:1-58](file://frontend/src/components/BookCard.jsx#L1-L58)
+- [Navbar.jsx:1-172](file://frontend/src/components/Navbar.jsx#L1-L172)
+- [BookCard.jsx:1-76](file://frontend/src/components/BookCard.jsx#L1-L76)
 - [Footer.jsx:1-74](file://frontend/src/components/Footer.jsx#L1-L74)
 
 ## Architecture Overview
-The application follows a conventional React SPA architecture:
-- Entry point initializes the root and mounts App.
-- App configures routing and composes global UI (Navbar and Footer).
-- Page components orchestrate data fetching via the API service and render reusable UI components.
-- State is primarily local to pages and components, with minimal prop drilling due to component composition.
+The application follows a sophisticated React SPA architecture with advanced user-centric features:
+- Entry point initializes the root and mounts App with comprehensive routing.
+- App configures routing and composes global UI with enhanced navigation and authentication.
+- Page components orchestrate data fetching via the API service and render reusable UI components with advanced functionality.
+- State management is primarily local to pages and components, with minimal prop drilling due to component composition.
+- Advanced features include user profiles, book uploads, comprehensive discovery, and community interactions.
 
 ```mermaid
 graph TB
 MAIN["main.jsx<br/>createRoot(App)"]
-APP["App.jsx<br/>Router + Routes"]
-NAV["Navbar.jsx"]
-FOO["Footer.jsx"]
-HOME["Home.jsx"]
-LOGIN["Login.jsx"]
-REG["Register.jsx"]
-DASH["Dashboard.jsx"]
-DETAIL["BookDetails.jsx"]
-READ["Reader.jsx"]
-ADM["Admin.jsx"]
-API["api.js"]
+APP["App.jsx<br/>Router + Routes + Auth"]
+NAV["Navbar.jsx<br/>Enhanced Navigation"]
+FOO["Footer.jsx<br/>Comprehensive Links"]
+HOME["Home.jsx<br/>Hero + Recommendations"]
+DISCOVER["Discover.jsx<br/>Advanced Search + Filters"]
+PROFILE["Profile.jsx<br/>User Library + Uploads"]
+UPLOAD["UploadBook.jsx<br/>Community Contributions"]
+LOGIN["Login.jsx<br/>Authentication"]
+REG["Register.jsx<br/>User Registration"]
+DASH["Dashboard.jsx<br/>Library Management"]
+DETAIL["BookDetails.jsx<br/>Book Information"]
+READ["Reader.jsx<br/>PDF Viewer"]
+ADM["Admin.jsx<br/>Content Management"]
+API["api.js<br/>Gutenberg + Custom API"]
 MAIN --> APP
 APP --> NAV
 APP --> FOO
 APP --> HOME
+APP --> DISCOVER
+APP --> PROFILE
+APP --> UPLOAD
 APP --> LOGIN
 APP --> REG
 APP --> DASH
@@ -167,6 +196,9 @@ APP --> DETAIL
 APP --> READ
 APP --> ADM
 HOME --> API
+DISCOVER --> API
+PROFILE --> API
+UPLOAD --> API
 DETAIL --> API
 READ --> API
 ADM --> API
@@ -175,18 +207,18 @@ ADM --> API
 **Diagram sources**
 - [main.jsx:1-11](file://frontend/src/main.jsx#L1-L11)
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
-- [Home.jsx:1-483](file://frontend/src/pages/Home.jsx#L1-L483)
-- [BookDetails.jsx:1-225](file://frontend/src/pages/BookDetails.jsx#L1-L225)
-- [Reader.jsx:1-178](file://frontend/src/pages/Reader.jsx#L1-L178)
-- [Admin.jsx:1-174](file://frontend/src/pages/Admin.jsx#L1-L174)
-- [api.js:1-284](file://frontend/src/services/api.js#L1-L284)
+- [Discover.jsx:18-141](file://frontend/src/pages/Discover.jsx#L18-L141)
+- [Profile.jsx:10-64](file://frontend/src/pages/Profile.jsx#L10-L64)
+- [UploadBook.jsx:13-66](file://frontend/src/pages/UploadBook.jsx#L13-L66)
+- [api.js:1-308](file://frontend/src/services/api.js#L1-L308)
 
 ## Detailed Component Analysis
 
 ### App Shell and Routing
-- App wraps the application in Router and renders Navbar, Routes, and Footer.
-- Routes define page-level components and nested Admin routes.
-- The main content area is wrapped to accommodate fixed header spacing.
+- App wraps the application in Router and renders Navbar, Routes, and Footer with comprehensive route definitions.
+- Routes define page-level components including new advanced features: Discover, Profile, and UploadBook.
+- The main content area is wrapped to accommodate fixed header spacing with enhanced navigation.
+- Nested Admin routes provide comprehensive content management capabilities.
 
 ```mermaid
 sequenceDiagram
@@ -197,9 +229,9 @@ participant Router as "React Router"
 participant Page as "Page Component"
 Browser->>Main : Load index.html
 Main->>App : Render App
-App->>Router : Define Routes
+App->>Router : Define Routes (including new components)
 Router->>Page : Mount matched route
-Page-->>Browser : Render page content
+Page-->>Browser : Render page content with enhanced features
 ```
 
 **Diagram sources**
@@ -209,232 +241,267 @@ Page-->>Browser : Render page content
 **Section sources**
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
 
-### Navbar Component
-- Features: Scroll-aware background, mobile hamburger menu, active link detection, and responsive layout.
-- State: scrolled, mobileMenuOpen.
-- Events: scroll listener, toggle button click, link clicks.
-- Styling: backdrop blur, gradient text, transitions, and mobile drawer with translate transforms.
+### Enhanced Navbar Component
+- **Features**: Scroll-aware background, mobile hamburger menu, active link detection, user authentication integration, conditional navigation items, and admin panel access.
+- **State**: scrolled, mobileMenuOpen, user authentication status.
+- **Events**: scroll listener, toggle button click, link clicks, storage change events for real-time user state updates.
+- **Enhanced Styling**: backdrop blur, gradient text, transitions, mobile drawer with translate transforms, and dynamic user interface elements.
+- **Authentication Integration**: Real-time user state monitoring, conditional rendering of admin panel access, and logout functionality.
 
 ```mermaid
 flowchart TD
 Start(["Mount Navbar"]) --> AddScroll["Add scroll listener"]
-AddScroll --> Scroll["Window scroll"]
+AddScroll --> CheckAuth["Check user authentication"]
+CheckAuth --> SetUser["Set user state from localStorage"]
+SetUser --> AddStorage["Add storage event listener"]
+AddStorage --> Scroll["Window scroll"]
 Scroll --> SetScrolled["Set scrolled state"]
 SetScrolled --> Render["Render with dynamic classes"]
 Render --> ToggleClick["Mobile menu toggle"]
 ToggleClick --> UpdateMenu["Update mobileMenuOpen"]
 UpdateMenu --> Render
-Render --> ClickLink["Link click"]
-ClickLink --> CloseMenu["Close mobile menu"]
-CloseMenu --> Render
-Start --> Cleanup["Remove scroll listener on unmount"]
+Render --> StorageChange["Storage change event"]
+StorageChange --> UpdateAuth["Update user authentication"]
+UpdateAuth --> Render
+Start --> Cleanup["Remove listeners on unmount"]
 ```
 
 **Diagram sources**
-- [Navbar.jsx:10-16](file://frontend/src/components/Navbar.jsx#L10-L16)
-- [Navbar.jsx:43-49](file://frontend/src/components/Navbar.jsx#L43-L49)
-- [Navbar.jsx:29-40](file://frontend/src/components/Navbar.jsx#L29-L40)
+- [Navbar.jsx:11-17](file://frontend/src/components/Navbar.jsx#L11-L17)
+- [Navbar.jsx:19-37](file://frontend/src/components/Navbar.jsx#L19-L37)
+- [Navbar.jsx:41-46](file://frontend/src/components/Navbar.jsx#L41-L46)
 
 **Section sources**
-- [Navbar.jsx:1-56](file://frontend/src/components/Navbar.jsx#L1-L56)
+- [Navbar.jsx:1-172](file://frontend/src/components/Navbar.jsx#L1-L172)
 
-### BookCard Component
-- Features: Skeleton placeholder during image load, rating badge, category tag, gradient overlay with “Read Now” button.
-- Props: book (title, author, category, rating, coverImage, id/_id).
-- State: imgLoaded.
-- Interactions: Link to book details page.
+### Enhanced BookCard Component
+- **Features**: Advanced skeleton placeholder during image load, rating badge with star icons, category tag, sophisticated gradient overlay with conditional "Read Now" or "View Details" buttons, and hover animations.
+- **Props**: book (title, author, category, rating, coverImage, id/_id, fileUrl).
+- **State**: imgLoaded for image loading optimization.
+- **Interactions**: Conditional navigation to reader or book details based on file availability, gradient glow effects on hover.
+- **Enhanced Styling**: Advanced glass panel effects, gradient overlays, hover transforms with scale animations, responsive aspect ratios, and sophisticated shadow effects.
 
 ```mermaid
 flowchart TD
 Start(["Render BookCard"]) --> CheckImg["Check imgLoaded"]
-CheckImg --> |False| ShowSkeleton["Show skeleton placeholder"]
-CheckImg --> |True| ShowCover["Show cover image"]
+CheckImg --> |False| ShowSkeleton["Show advanced skeleton placeholder"]
+CheckImg --> |True| ShowCover["Show cover image with scale animation"]
 ShowSkeleton --> OnLoad["onLoad sets imgLoaded=true"]
 OnLoad --> ShowCover
-ShowCover --> Overlay["Hover overlay visible"]
-Overlay --> ClickRead["Click Read Now"]
-ClickRead --> Navigate["Navigate to /book/:id"]
+ShowCover --> Overlay["Advanced hover overlay with gradient"]
+Overlay --> CheckFile["Check fileUrl availability"]
+CheckFile --> |Available| ReadNow["Show 'Read Now' button"]
+CheckFile --> |Unavailable| ViewDetails["Show 'View Details' button"]
+ReadNow --> Navigate["Navigate to /read/:id"]
+ViewDetails --> NavigateDetails["Navigate to /book/:id"]
 ```
 
 **Diagram sources**
-- [BookCard.jsx:6-18](file://frontend/src/components/BookCard.jsx#L6-L18)
-- [BookCard.jsx:33-37](file://frontend/src/components/BookCard.jsx#L33-L37)
+- [BookCard.jsx:6-23](file://frontend/src/components/BookCard.jsx#L6-L23)
+- [BookCard.jsx:38-55](file://frontend/src/components/BookCard.jsx#L38-L55)
 
 **Section sources**
-- [BookCard.jsx:1-58](file://frontend/src/components/BookCard.jsx#L1-L58)
+- [BookCard.jsx:1-76](file://frontend/src/components/BookCard.jsx#L1-L76)
 
-### Footer Component
-- Features: Brand identity, multi-column link sections, social media icons.
-- Props: None.
-- Interactions: Internal and external navigation.
+### Enhanced Footer Component
+- **Features**: Comprehensive brand identity, multi-column link sections with extensive navigation, social media integration with hover effects, and responsive design.
+- **Props**: None.
+- **Interactions**: Internal and external navigation with proper routing.
 
 **Section sources**
 - [Footer.jsx:1-74](file://frontend/src/components/Footer.jsx#L1-L74)
 
-### Home Page
-- Responsibilities: Hero search, trending carousel, preview carousel, category filtering, featured editor’s pick, new releases, and AI features CTA.
-- Data: Fetches trending, new releases, recommended, and preview books; supports category and search queries.
-- State: activeCategory, searchQuery, books, trendingBooks, newReleases, previewBooks, featuredBook, isLoading flags, refs for horizontal scrolling.
-- Interactions: Category pill toggles, search form submission, scroll buttons, and infinite scroll placeholders.
-- API: searchBooks, getBooksByCategory, getTrendingBooks, getNewReleases, getRecommendedBooks, getBooksWithPreview.
+## Advanced Page Components
+
+### Discover Page
+- **Responsibilities**: Comprehensive book discovery with advanced search, category filtering, sorting options, view modes (grid/list), pagination, and active filter management.
+- **Data**: Fetches trending books, category-specific books, and search results from Project Gutenberg API with debounced search functionality.
+- **State**: activeCategory, searchQuery, books, filteredBooks, isLoading, viewMode, sortBy, showFilters, page, hasMore.
+- **Interactions**: Category pill toggles, debounced search with 600ms delay, sort dropdown selection, view mode switching, filter clearing, and infinite scroll loading.
+- **Enhanced Features**: Advanced filtering system with active filter badges, clear filters functionality, skeleton loading states, and comprehensive error handling.
+- **API**: searchBooks, getBooksByCategory, getTrendingBooks with intelligent fallbacks.
 
 ```mermaid
 sequenceDiagram
-participant Home as "Home.jsx"
+participant Discover as "Discover.jsx"
 participant API as "api.js"
-participant UI as "UI Sections"
-Home->>API : getTrendingBooks(10)
-API-->>Home : trendingBooks[]
-Home->>API : getNewReleases(8)
-API-->>Home : newReleases[]
-Home->>API : getRecommendedBooks(1)
-API-->>Home : featuredBook
-Home->>API : getBooksWithPreview(10)
-API-->>Home : previewBooks[]
-Home->>API : getBooksByCategory(activeCategory)
-API-->>Home : books[]
-Home->>API : searchBooks(query)
-API-->>Home : books[]
+participant UI as "UI Components"
+Discover->>API : getTrendingBooks(24)
+API-->>Discover : trendingBooks[]
+Discover->>API : getBooksByCategory(category, 24)
+API-->>Discover : categoryBooks[]
+Discover->>API : searchBooks(query, 24)
+API-->>Discover : searchResults[]
+Discover->>UI : Update filteredBooks state
+UI->>Discover : User interaction (filter/sort/view)
+Discover->>Discover : Apply filters and sorting
+Discover->>Discover : Load more books (pagination)
 ```
 
 **Diagram sources**
-- [Home.jsx:44-92](file://frontend/src/pages/Home.jsx#L44-L92)
-- [Home.jsx:95-112](file://frontend/src/pages/Home.jsx#L95-L112)
-- [Home.jsx:114-127](file://frontend/src/pages/Home.jsx#L114-L127)
-- [api.js:183-204](file://frontend/src/services/api.js#L183-L204)
-- [api.js:245-283](file://frontend/src/services/api.js#L245-L283)
+- [Discover.jsx:36-60](file://frontend/src/pages/Discover.jsx#L36-L60)
+- [Discover.jsx:63-87](file://frontend/src/pages/Discover.jsx#L63-L87)
+- [Discover.jsx:128-133](file://frontend/src/pages/Discover.jsx#L128-L133)
 
 **Section sources**
-- [Home.jsx:1-483](file://frontend/src/pages/Home.jsx#L1-L483)
-- [api.js:120-144](file://frontend/src/services/api.js#L120-L144)
-- [api.js:173-178](file://frontend/src/services/api.js#L173-L178)
-- [api.js:183-204](file://frontend/src/services/api.js#L183-L204)
-- [api.js:245-283](file://frontend/src/services/api.js#L245-L283)
+- [Discover.jsx:1-452](file://frontend/src/pages/Discover.jsx#L1-L452)
+- [api.js:131-153](file://frontend/src/services/api.js#L131-L153)
+- [api.js:184-201](file://frontend/src/services/api.js#L184-L201)
+- [api.js:207-229](file://frontend/src/services/api.js#L207-L229)
 
-### Login Page
-- Responsibilities: Authentication form with email and password, submit handler, and navigation to register.
-- State: email, password.
-- Interactions: Form submission logs credentials (placeholder).
+### Profile Page
+- **Responsibilities**: Comprehensive user profile management with favorites, bookmarks, reading history, and uploaded books with status tracking.
+- **Data**: Fetches user profile, favorites, bookmarks, reading history, and user's uploaded books from custom API endpoints.
+- **State**: activeTab, user, favorites, bookmarks, readingHistory, myUploads, isLoading, error, success.
+- **Interactions**: Tab switching between favorites, bookmarks, reading history, and uploads, individual item removal, logout functionality, and upload management.
+- **Enhanced Features**: Status indicators for uploaded books (approved/pending/rejected), comprehensive error handling, success notifications, and responsive layout.
+- **API**: Custom endpoints for user profile, favorites, bookmarks, reading history, and user uploads.
+
+```mermaid
+sequenceDiagram
+participant Profile as "Profile.jsx"
+participant API as "Custom API"
+participant UI as "Profile Components"
+Profile->>API : GET /users/profile
+API-->>Profile : User data with favorites/bookmarks/history
+Profile->>API : GET /uploads/my-uploads (on uploads tab)
+API-->>Profile : User's uploaded books with status
+Profile->>UI : Render profile sidebar with stats
+Profile->>UI : Render active tab content
+UI->>Profile : User action (remove favorite/bookmark)
+Profile->>API : DELETE /users/favorites/ : id or /users/bookmarks/ : id
+API-->>Profile : Success response
+Profile->>Profile : Update state and show success message
+```
+
+**Diagram sources**
+- [Profile.jsx:31-46](file://frontend/src/pages/Profile.jsx#L31-L46)
+- [Profile.jsx:48-58](file://frontend/src/pages/Profile.jsx#L48-L58)
+- [Profile.jsx:66-94](file://frontend/src/pages/Profile.jsx#L66-L94)
 
 **Section sources**
-- [Login.jsx:1-84](file://frontend/src/pages/Login.jsx#L1-L84)
+- [Profile.jsx:1-333](file://frontend/src/pages/Profile.jsx#L1-L333)
 
-### Register Page
-- Responsibilities: Registration form with username, email, and password, submit handler, and navigation to login.
-- State: username, email, password.
-- Interactions: Form submission logs credentials (placeholder).
+### UploadBook Page
+- **Responsibilities**: Community-driven book upload system with comprehensive form validation, file URL submission, and status tracking.
+- **Data**: Handles book upload form submission to custom API endpoint with authentication.
+- **State**: formData (title, author, description, category, coverImage, fileUrl, pages, publishYear), isSubmitting, error, success.
+- **Interactions**: Form field validation, file URL submission, success/error state management, and navigation back to profile.
+- **Enhanced Features**: Comprehensive form validation, loading states with spinner animations, success/error notifications, and category selection.
+- **API**: POST request to /uploads endpoint with authentication token.
+
+```mermaid
+sequenceDiagram
+participant Upload as "UploadBook.jsx"
+participant API as "Custom API"
+participant Form as "Upload Form"
+Upload->>Form : Render upload form with categories
+Form->>Upload : User fills form fields
+Form->>Upload : Submit form (validation)
+Upload->>API : POST /uploads with formData + token
+API-->>Upload : Response (success/error)
+Upload->>Upload : Update success/error state
+Upload->>Form : Show success message and reset form
+```
+
+**Diagram sources**
+- [UploadBook.jsx:34-66](file://frontend/src/pages/UploadBook.jsx#L34-L66)
+- [UploadBook.jsx:14-23](file://frontend/src/pages/UploadBook.jsx#L14-L23)
 
 **Section sources**
-- [Register.jsx:1-99](file://frontend/src/pages/Register.jsx#L1-L99)
+- [UploadBook.jsx:1-230](file://frontend/src/pages/UploadBook.jsx#L1-L230)
 
-### Dashboard Page
-- Responsibilities: User library dashboard with tabs for currently reading, favorites, bookmarks, and settings.
-- Data: Mock data for favorites and currently reading.
-- State: activeTab.
-- Interactions: Tab switching, progress bars, and action buttons.
+### Enhanced Dashboard Page
+- **Responsibilities**: Traditional user library dashboard with enhanced navigation and improved visual presentation.
+- **Data**: Uses mock data for demonstration purposes with comprehensive grid layouts.
+- **State**: activeTab for navigation between reading, favorites, bookmarks, and settings.
+- **Interactions**: Tab switching with animated transitions, progress tracking, and interactive elements.
 
 **Section sources**
 - [Dashboard.jsx:1-159](file://frontend/src/pages/Dashboard.jsx#L1-L159)
 
-### BookDetails Page
-- Responsibilities: Detailed book view with cover, metadata, actions (favorite, bookmark, share), AI summary, and similar books placeholder.
-- Data: Fetches book details and checks preview availability.
-- State: book, isLoading, error, isFavorite, isBookmarked, hasPreview, checkingPreview.
-- Interactions: Preview availability check, navigation to Reader or external Google Books, favorite/bookmark toggles.
-
-```mermaid
-sequenceDiagram
-participant Detail as "BookDetails.jsx"
-participant API as "api.js"
-Detail->>API : getBookDetails(id)
-API-->>Detail : book
-Detail->>API : checkPreviewAvailability(id)
-API-->>Detail : boolean hasPreview
-alt Preview available
-Detail->>Detail : Enable "Read Book Now"
-else Preview unavailable
-Detail->>Detail : Show external link
-end
-```
-
-**Diagram sources**
-- [BookDetails.jsx:16-57](file://frontend/src/pages/BookDetails.jsx#L16-L57)
-- [api.js:151-168](file://frontend/src/services/api.js#L151-L168)
-- [api.js:217-237](file://frontend/src/services/api.js#L217-L237)
+### Enhanced BookDetails Page
+- **Responsibilities**: Detailed book view with enhanced metadata display, AI summary integration, and comprehensive action buttons.
+- **Data**: Fetches book details and checks preview availability from Project Gutenberg API.
+- **State**: book, isLoading, error, isFavorite, isBookmarked, hasPreview, checkingPreview.
+- **Interactions**: Preview availability check, navigation to Reader or external Google Books, favorite/bookmark toggles, and AI summary display.
 
 **Section sources**
 - [BookDetails.jsx:1-225](file://frontend/src/pages/BookDetails.jsx#L1-L225)
-- [api.js:151-168](file://frontend/src/services/api.js#L151-L168)
-- [api.js:217-237](file://frontend/src/services/api.js#L217-L237)
 
-### Reader Page
-- Responsibilities: Embedded Google Books viewer with theme toggle and error handling.
-- Data: Fetches book title for header.
-- State: bookTitle, theme, isLoading, hasError.
-- Interactions: Theme switch, back navigation, dynamic script loading for Google Books JSAPI.
-- Lifecycle: Loads script once, initializes viewer, handles errors.
-
-```mermaid
-sequenceDiagram
-participant Reader as "Reader.jsx"
-participant API as "api.js"
-participant GB as "Google Books JSAPI"
-Reader->>API : getBookDetails(id)
-API-->>Reader : title
-Reader->>GB : Load books jsapi
-GB-->>Reader : google.books ready
-Reader->>GB : Initialize DefaultViewer
-GB-->>Reader : Loaded or Error
-alt Loaded
-Reader->>Reader : Set isLoading=false, hasError=false
-else Error
-Reader->>Reader : Set isLoading=false, hasError=true
-end
-```
-
-**Diagram sources**
-- [Reader.jsx:15-99](file://frontend/src/pages/Reader.jsx#L15-L99)
-- [Reader.jsx:101-175](file://frontend/src/pages/Reader.jsx#L101-L175)
-- [api.js:151-168](file://frontend/src/services/api.js#L151-L168)
+### Enhanced Reader Page
+- **Responsibilities**: Advanced embedded Google Books viewer with theme toggle, error handling, and comprehensive book metadata display.
+- **Data**: Fetches book title and metadata for header display.
+- **State**: bookTitle, theme, isLoading, hasError.
+- **Interactions**: Theme switch, back navigation, dynamic script loading for Google Books JSAPI, and error state management.
+- **Lifecycle**: Optimized script loading with caching, viewer initialization, and error recovery mechanisms.
 
 **Section sources**
 - [Reader.jsx:1-178](file://frontend/src/pages/Reader.jsx#L1-L178)
-- [api.js:151-168](file://frontend/src/services/api.js#L151-L168)
 
-### Admin Page
-- Responsibilities: Administrative dashboard with tabs for managing books and users, search input, and action buttons.
-- Data: Mock data for books and users.
-- State: activeTab.
-- Interactions: Tab switching, search input, edit/delete actions.
+### Enhanced Admin Page
+- **Responsibilities**: Comprehensive administrative dashboard with advanced book and user management, search functionality, and action controls.
+- **Data**: Uses mock data for demonstration with comprehensive table layouts.
+- **State**: activeTab for navigation between books and users management.
+- **Interactions**: Tab switching, search input handling, edit/delete actions, and bulk operations.
 
 **Section sources**
 - [Admin.jsx:1-174](file://frontend/src/pages/Admin.jsx#L1-L174)
 
+## Enhanced UI Components
+
+### Advanced BookCard Component
+- **Enhanced Features**: Improved skeleton loading with more sophisticated animations, enhanced hover effects with gradient overlays, conditional navigation based on file availability, and refined visual hierarchy.
+- **Styling Improvements**: Advanced glass-morphism effects, sophisticated shadow systems, improved aspect ratio handling, and enhanced responsive design.
+- **Accessibility**: Better ARIA labels, improved keyboard navigation support, and enhanced screen reader compatibility.
+
+### Enhanced Navbar Component
+- **Advanced Navigation**: Conditional rendering of navigation items based on user authentication, admin panel access for authorized users, and real-time user state updates.
+- **Visual Enhancements**: Improved mobile menu animations, enhanced user avatar display, and sophisticated active state indicators.
+- **Integration**: Seamless integration with authentication system and real-time user state synchronization.
+
+### Enhanced Footer Component
+- **Comprehensive Link Structure**: Expanded navigation categories with more detailed link hierarchies, improved social media integration, and enhanced responsive design.
+- **Brand Presentation**: Refined brand identity display with improved visual hierarchy and better mobile responsiveness.
+
+**Section sources**
+- [BookCard.jsx:1-76](file://frontend/src/components/BookCard.jsx#L1-L76)
+- [Navbar.jsx:1-172](file://frontend/src/components/Navbar.jsx#L1-L172)
+- [Footer.jsx:1-74](file://frontend/src/components/Footer.jsx#L1-L74)
+
 ## Dependency Analysis
-- Component dependencies:
-  - App depends on Navbar, Footer, and page components.
-  - Home, BookDetails, Reader depend on api.js.
-  - Home and Dashboard use BookCard.
-- External dependencies:
-  - react-router-dom for routing and navigation.
-  - lucide-react for icons.
-  - Google Books API for data and embedded viewer.
+- **Component dependencies**:
+  - App depends on enhanced Navbar, Footer, and all page components including new advanced features.
+  - Home, Discover, Profile, UploadBook, BookDetails, Reader depend on api.js with enhanced API integration.
+  - Home, Discover, Profile, Dashboard use enhanced BookCard with improved functionality.
+- **External dependencies**:
+  - react-router-dom for comprehensive routing and navigation.
+  - lucide-react for enhanced iconography with improved visual consistency.
+  - Project Gutenberg API for comprehensive book data with fallback mechanisms.
+  - Custom backend API for user management, uploads, and profile functionality.
 
 ```mermaid
 graph LR
-APP["App.jsx"] --> NAV["Navbar.jsx"]
-APP --> FOO["Footer.jsx"]
-APP --> HOME["Home.jsx"]
-APP --> LOGIN["Login.jsx"]
-APP --> REG["Register.jsx"]
-APP --> DASH["Dashboard.jsx"]
-APP --> DETAIL["BookDetails.jsx"]
-APP --> READ["Reader.jsx"]
-APP --> ADM["Admin.jsx"]
-HOME --> CARD["BookCard.jsx"]
+APP["App.jsx"] --> NAV["Navbar.jsx<br/>Enhanced Navigation"]
+APP --> FOO["Footer.jsx<br/>Comprehensive Links"]
+APP --> HOME["Home.jsx<br/>Hero + Recommendations"]
+APP --> DISCOVER["Discover.jsx<br/>Advanced Search + Filters"]
+APP --> PROFILE["Profile.jsx<br/>User Library + Uploads"]
+APP --> UPLOAD["UploadBook.jsx<br/>Community Contributions"]
+APP --> LOGIN["Login.jsx<br/>Authentication"]
+APP --> REG["Register.jsx<br/>User Registration"]
+APP --> DASH["Dashboard.jsx<br/>Library Management"]
+APP --> DETAIL["BookDetails.jsx<br/>Book Information"]
+APP --> READ["Reader.jsx<br/>PDF Viewer"]
+APP --> ADM["Admin.jsx<br/>Content Management"]
+HOME --> CARD["BookCard.jsx<br/>Enhanced Functionality"]
+DISCOVER --> CARD
+PROFILE --> CARD
 DASH --> CARD
-DETAIL --> CARD
-HOME --> API["api.js"]
+HOME --> API["api.js<br/>Gutenberg + Custom API"]
+DISCOVER --> API
+PROFILE --> API
+UPLOAD --> API
 DETAIL --> API
 READ --> API
 ADM --> API
@@ -442,41 +509,57 @@ ADM --> API
 
 **Diagram sources**
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
-- [Home.jsx:1-483](file://frontend/src/pages/Home.jsx#L1-L483)
-- [BookDetails.jsx:1-225](file://frontend/src/pages/BookDetails.jsx#L1-L225)
-- [Reader.jsx:1-178](file://frontend/src/pages/Reader.jsx#L1-L178)
-- [Admin.jsx:1-174](file://frontend/src/pages/Admin.jsx#L1-L174)
-- [BookCard.jsx:1-58](file://frontend/src/components/BookCard.jsx#L1-L58)
-- [api.js:1-284](file://frontend/src/services/api.js#L1-L284)
+- [Discover.jsx:1-452](file://frontend/src/pages/Discover.jsx#L1-L452)
+- [Profile.jsx:1-333](file://frontend/src/pages/Profile.jsx#L1-L333)
+- [UploadBook.jsx:1-230](file://frontend/src/pages/UploadBook.jsx#L1-L230)
+- [BookCard.jsx:1-76](file://frontend/src/components/BookCard.jsx#L1-L76)
+- [api.js:1-308](file://frontend/src/services/api.js#L1-L308)
 
 **Section sources**
 - [App.jsx:16-37](file://frontend/src/App.jsx#L16-L37)
-- [api.js:1-284](file://frontend/src/services/api.js#L1-L284)
+- [api.js:1-308](file://frontend/src/services/api.js#L1-L308)
 
 ## Performance Considerations
-- Image loading: BookCard uses a skeleton placeholder and opacity transitions to improve perceived performance.
-- Horizontal scrolling: Home uses refs and smooth scroll for carousels to avoid layout thrashing.
-- API fallbacks: api.js returns mock data when network requests fail or rate limits are hit, preventing broken UI.
-- Lazy initialization: Reader dynamically loads the Google Books JSAPI only when needed.
-- CSS animations: Tailwind utilities provide lightweight animations; keep durations reasonable to avoid jank.
+- **Enhanced Image Loading**: BookCard uses sophisticated skeleton placeholders with advanced animations and opacity transitions to improve perceived performance.
+- **Advanced Horizontal Scrolling**: Discover page uses optimized refs and smooth scroll for carousels to avoid layout thrashing with debounced search functionality.
+- **Intelligent API Fallbacks**: api.js returns comprehensive mock data when network requests fail or rate limits are hit, preventing broken UI with enhanced error handling.
+- **Optimized Lazy Initialization**: Reader dynamically loads the Google Books JSAPI only when needed with caching mechanisms.
+- **Advanced CSS Animations**: Tailwind utilities provide sophisticated animations with enhanced performance optimizations; keep durations reasonable to avoid jank.
+- **Debounced Search**: Discover page implements 600ms debounced search to optimize API calls and improve user experience.
+- **Conditional Rendering**: Enhanced components use conditional rendering based on user authentication and data availability.
 
 ## Troubleshooting Guide
-- Navigation issues:
-  - Verify routes in App.jsx match page component exports.
-  - Ensure Link components use correct paths.
-- API failures:
-  - Confirm environment variable for Google Books API key is set if required.
-  - Check network tab for 403/429 responses; fallback mock data is used automatically.
-- Reader viewer errors:
+- **Navigation Issues**:
+  - Verify routes in App.jsx match page component exports including new components.
+  - Ensure Link components use correct paths with enhanced routing.
+  - Check authentication state for conditional navigation items.
+- **API Failures**:
+  - Confirm environment variables for Project Gutenberg API and custom backend are set.
+  - Check network tab for 403/429 responses; enhanced fallback mechanisms are used automatically.
+  - Monitor debounced search functionality for optimal performance.
+- **Enhanced Reader Viewer Errors**:
   - If preview is unavailable, the component displays an error state and external link option.
-- Mobile menu not closing:
+  - Check Google Books API integration and fallback mechanisms.
+- **Mobile Menu Issues**:
   - Navbar click handlers set mobile menu state; confirm event handlers are attached.
+  - Verify responsive design breakpoints and touch interactions.
+- **Authentication Problems**:
+  - Check localStorage for token and user data persistence.
+  - Verify storage event listeners for real-time user state updates.
+- **Upload Issues**:
+  - Verify file URL accessibility and PDF format validation.
+  - Check upload status tracking and approval workflows.
 
 **Section sources**
 - [App.jsx:22-31](file://frontend/src/App.jsx#L22-L31)
-- [api.js:10-12](file://frontend/src/services/api.js#L10-L12)
-- [Reader.jsx:137-164](file://frontend/src/pages/Reader.jsx#L137-L164)
-- [Navbar.jsx:37-40](file://frontend/src/components/Navbar.jsx#L37-L40)
+- [Discover.jsx:89-98](file://frontend/src/pages/Discover.jsx#L89-L98)
+- [Profile.jsx:96-100](file://frontend/src/pages/Profile.jsx#L96-L100)
+- [UploadBook.jsx:34-66](file://frontend/src/pages/UploadBook.jsx#L34-L66)
+- [Navbar.jsx:31-37](file://frontend/src/components/Navbar.jsx#L31-L37)
 
 ## Conclusion
-ReadSphere’s frontend is structured around a clean component hierarchy with clear separation of concerns. App.jsx orchestrates routing and global UI, while page components manage domain-specific state and data fetching via api.js. Reusable components like Navbar, BookCard, and Footer promote consistency and reduce duplication. Styling leverages Tailwind CSS with custom utilities and animations, emphasizing a cohesive dark theme with orange accents. The architecture supports scalability through modular components, predictable state management, and robust API integration with graceful fallbacks.
+ReadSphere's frontend architecture represents a comprehensive and sophisticated React application with advanced user-centric features. The enhanced component hierarchy demonstrates clear separation of concerns with the App.jsx orchestrating routing and global UI, while page components manage domain-specific state and data fetching via the enhanced api.js service. The addition of advanced page components including Discover, Profile, and UploadBook significantly expands the platform's functionality, enabling comprehensive book discovery, user personalization, and community-driven content sharing.
+
+The enhanced UI components showcase improved styling and functionality with sophisticated animations, responsive design patterns, and interactive state handling. The architecture supports scalability through modular components, predictable state management, and robust API integration with intelligent fallbacks. The integration of Project Gutenberg API with custom backend services provides a comprehensive solution for book discovery, user management, and community contributions.
+
+The enhanced architecture emphasizes user experience with advanced search capabilities, personalized recommendations, comprehensive profile management, and seamless book reading experiences. The sophisticated component composition patterns, state management approaches, and prop drilling solutions demonstrate best practices in modern React development, positioning ReadSphere as a scalable and maintainable platform for digital book management and community engagement.

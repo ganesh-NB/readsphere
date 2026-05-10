@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    unique: true,
     lowercase: true,
     trim: true
   },
@@ -92,10 +93,14 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp before saving
-userSchema.pre('save', function(next) {
+// Hash password before saving (Mongoose 9 async middleware — no next() callback)
+userSchema.pre('save', async function() {
   this.updatedAt = Date.now();
-  next();
+  // Only hash if password field was explicitly changed AND not already a bcrypt hash
+  if (this.isModified('password') && this.password && !this.password.startsWith('$2')) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
 });
 
 // Static method to hash password

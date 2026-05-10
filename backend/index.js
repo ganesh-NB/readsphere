@@ -35,6 +35,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve uploaded book files (PDFs)
+app.use('/uploads', require('express').static(require('path').join(__dirname, 'uploads')));
+
 // Session configuration (required for Passport)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',

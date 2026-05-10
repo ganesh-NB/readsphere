@@ -1,35 +1,33 @@
 const jwt = require('jsonwebtoken');
 
-const protect = (req, res, next) => {
-  let token;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded; // Contains id and role
-      next();
-    } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
-    }
-  }
+/**
+ * JWT Authentication Middleware
+ * Verifies the Bearer token from the Authorization header.
+ * Attaches decoded user info to req.user
+ */
+const auth = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
-};
 
-const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+    );
+    // Support both { userId } (authRoutes) and { id } (legacy) payloads
+    req.user = {
+      userId: decoded.userId || decoded.id,
+      id: decoded.userId || decoded.id,
+      role: decoded.role || 'user',
+    };
     next();
-  } else {
-    res.status(401).json({ message: 'Not authorized as an admin' });
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired token.' });
   }
 };
 
-module.exports = protect;
-module.exports.admin = admin;
-module.exports.protect = protect;
+module.exports = auth;

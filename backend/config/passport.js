@@ -35,8 +35,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
           if (user) {
             // Update last login
-            user.lastLogin = Date.now();
-            await user.save();
+            await User.findByIdAndUpdate(user._id, { lastLogin: Date.now() });
             return done(null, user);
           }
 
@@ -45,10 +44,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
           if (user) {
             // Link Google account to existing user
-            user.googleId = profile.id;
-            user.avatar = profile.photos[0]?.value || user.avatar;
-            user.lastLogin = Date.now();
-            await user.save();
+            await User.findByIdAndUpdate(user._id, {
+              googleId: profile.id,
+              avatar: profile.photos[0]?.value || user.avatar,
+              lastLogin: Date.now()
+            });
             return done(null, user);
           }
 

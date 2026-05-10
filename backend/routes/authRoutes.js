@@ -4,10 +4,10 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 
-// Generate JWT Token
-const generateToken = (userId) => {
+// Generate JWT Token — includes role so auth middleware can enforce RBAC
+const generateToken = (userId, role = 'user') => {
   return jwt.sign(
-    { userId },
+    { userId, role },
     process.env.JWT_SECRET || 'your-secret-key-change-in-production',
     { expiresIn: '7d' }
   );
@@ -46,7 +46,7 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     res.status(201).json({
       success: true,
@@ -91,12 +91,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Update last login
-    user.lastLogin = Date.now();
-    await user.save();
+    // Update last login without triggering pre-save password hash
+    await User.findByIdAndUpdate(user._id, { lastLogin: Date.now() });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     res.json({
       success: true,
@@ -136,7 +135,7 @@ router.get('/google/callback',
   }),
   (req, res) => {
     // Generate JWT token
-    const token = generateToken(req.user._id);
+    const token = generateToken(req.user._id, req.user.role);
     
     // Redirect to frontend with token
     const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
@@ -149,7 +148,7 @@ router.get('/google/callback',
 // @access  Private
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -168,8 +167,6 @@ router.get('/me', authenticateToken, async (req, res) => {
 // @access  Private
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    // In a more complex setup, you might want to invalidate the token
-    // For now, we just return success and let the client remove the token
     res.json({
       success: true,
       message: 'Logged out successfully'
@@ -180,10 +177,10 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
-// Middleware to authenticate JWT token
+// Local authenticateToken for /me and /logout routes (uses same logic as middleware/auth.js)
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
@@ -191,7 +188,11 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production');
-    req.userId = decoded.userId;
+    req.user = {
+      userId: decoded.userId || decoded.id,
+      id: decoded.userId || decoded.id,
+      role: decoded.role || 'user',
+    };
     next();
   } catch (error) {
     return res.status(403).json({ message: 'Invalid or expired token' });

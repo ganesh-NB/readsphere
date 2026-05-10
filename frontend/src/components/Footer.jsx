@@ -2,72 +2,77 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Github, Twitter, Linkedin } from 'lucide-react';
 
-const Footer = () => {
-  return (
-    <footer className="bg-[#0f1422] border-t border-white/5 pt-16 pb-8 mt-auto">
-      <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
-          
-          {/* Brand Column */}
-          <div className="flex flex-col gap-6 lg:col-span-1">
-            <Link to="/" className="flex items-center gap-3 w-fit group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform duration-300">
-                <BookOpen className="text-white" size={24} />
-              </div>
-              <span className="text-xl font-bold tracking-tight text-white">Read<span className="text-gradient">Sphere</span></span>
-            </Link>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              Your personalized smart e-book platform. Discover, read, and manage your favorite books with AI-powered insights.
-            </p>
-            <div className="flex items-center gap-4 mt-2">
-              <a href="#" className="w-10 h-10 rounded-full bg-[#13192b] flex items-center justify-center text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 transition-all duration-300" aria-label="Github"><Github size={18} /></a>
-              <a href="#" className="w-10 h-10 rounded-full bg-[#13192b] flex items-center justify-center text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 transition-all duration-300" aria-label="Twitter"><Twitter size={18} /></a>
-              <a href="#" className="w-10 h-10 rounded-full bg-[#13192b] flex items-center justify-center text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 transition-all duration-300" aria-label="LinkedIn"><Linkedin size={18} /></a>
-            </div>
-          </div>
-          
-          {/* Links Columns container */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:col-span-3">
-            <div className="flex flex-col gap-4">
-              <h3 className="text-white font-semibold mb-2">Explore</h3>
-              <ul className="flex flex-col gap-3">
-                <li><Link to="/" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Home</Link></li>
-                <li><Link to="/books" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Discover Books</Link></li>
-                <li><Link to="/categories" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Categories</Link></li>
-                <li><Link to="/authors" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Top Authors</Link></li>
-              </ul>
-            </div>
-            
-            <div className="flex flex-col gap-4">
-              <h3 className="text-white font-semibold mb-2">Account</h3>
-              <ul className="flex flex-col gap-3">
-                <li><Link to="/login" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Sign In</Link></li>
-                <li><Link to="/register" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Create Account</Link></li>
-                <li><Link to="/dashboard" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">My Library</Link></li>
-                <li><Link to="/settings" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Settings</Link></li>
-              </ul>
-            </div>
-            
-            <div className="flex flex-col gap-4">
-              <h3 className="text-white font-semibold mb-2">Legal</h3>
-              <ul className="flex flex-col gap-3">
-                <li><Link to="/terms" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Terms of Service</Link></li>
-                <li><Link to="/privacy" className="text-slate-400 hover:text-orange-400 text-sm transition-colors duration-200">Privacy Policy</Link></li>
-              </ul>
-            </div>
-          </div>
+const Footer = () => (
+  <footer className="mt-auto pt-14 pb-8" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
+    <div className="max-w-7xl mx-auto px-4 lg:px-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
 
-        </div>
-        
-        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-slate-500 text-sm">&copy; {new Date().getFullYear()} ReadSphere. All rights reserved.</p>
-          <div className="flex items-center gap-6 text-sm text-slate-500">
-            <span>Designed with &#10084;</span>
+        {/* Brand */}
+        <div className="lg:col-span-1 flex flex-col gap-5">
+          <Link to="/" className="flex items-center gap-2.5 w-fit">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'var(--accent)' }}>
+              <BookOpen size={17} style={{ color: 'var(--accent-fg)' }} />
+            </div>
+            <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              ReadSphere
+            </span>
+          </Link>
+          <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+            Your personalised smart e-book platform. Discover, read, and manage your favourite books with AI-powered insights.
+          </p>
+          <div className="flex items-center gap-3">
+            {[
+              { Icon: Github,   href: '#', label: 'GitHub'   },
+              { Icon: Twitter,  href: '#', label: 'Twitter'  },
+              { Icon: Linkedin, href: '#', label: 'LinkedIn' },
+            ].map(({ Icon, href, label }) => (
+              <a key={label} href={href} aria-label={label}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-light)'; e.currentTarget.style.borderColor = 'var(--accent-border)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}>
+                <Icon size={15} />
+              </a>
+            ))}
           </div>
+        </div>
+
+        {/* Links */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:col-span-3">
+          {[
+            { title: 'Explore', links: [{ to: '/', label: 'Home' }, { to: '/discover', label: 'Discover Books' }] },
+            { title: 'Account', links: [{ to: '/login', label: 'Sign In' }, { to: '/register', label: 'Create Account' }, { to: '/profile', label: 'My Library' }] },
+            { title: 'Legal',   links: [{ to: '/terms', label: 'Terms of Service' }, { to: '/privacy', label: 'Privacy Policy' }] },
+          ].map(({ title, links }) => (
+            <div key={title}>
+              <h3 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+              <ul className="flex flex-col gap-2.5">
+                {links.map(({ to, label }) => (
+                  <li key={label}>
+                    <Link to={to} className="text-sm transition-colors duration-150"
+                      style={{ color: 'var(--text-secondary)' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-light)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
-    </footer>
-  );
-};
+
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-6"
+        style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          &copy; {new Date().getFullYear()} ReadSphere. All rights reserved.
+        </p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Designed with ♥</p>
+      </div>
+    </div>
+  </footer>
+);
 
 export default Footer;

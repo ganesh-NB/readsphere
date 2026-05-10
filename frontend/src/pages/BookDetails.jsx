@@ -3,223 +3,196 @@ import { useParams, Link } from 'react-router-dom';
 import { Star, BookOpen, Bookmark, Heart, ArrowLeft, Clock, Share2, AlertCircle, ExternalLink } from 'lucide-react';
 import { getBookDetails, checkPreviewAvailability } from '../services/api';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const resolveCover = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600';
+  if (url.startsWith('http')) return url;
+  return `${API_URL}${url}`;
+};
+
 const BookDetails = () => {
   const { id } = useParams();
-  const [book, setBook] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [hasPreview, setHasPreview] = useState(null);
+  const [book,            setBook]            = useState(null);
+  const [isLoading,       setIsLoading]       = useState(true);
+  const [error,           setError]           = useState(null);
+  const [isFavorite,      setIsFavorite]      = useState(false);
+  const [isBookmarked,    setIsBookmarked]    = useState(false);
+  const [hasPreview,      setHasPreview]      = useState(null);
   const [checkingPreview, setCheckingPreview] = useState(true);
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      setIsLoading(true);
-      setError(null);
+    const fetch_ = async () => {
+      setIsLoading(true); setError(null);
       try {
         const data = await getBookDetails(id);
-        if (data) {
-          setBook(data);
-        } else {
-          setError("Book not found. It may have been removed or the ID is invalid.");
-        }
-      } catch (err) {
-        console.error("Failed to load book:", err);
-        setError("Failed to fetch book details. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
+        if (data) setBook(data);
+        else setError('Book not found.');
+      } catch { setError('Failed to load book details.'); }
+      finally { setIsLoading(false); }
     };
-
-    if (id) {
-      fetchDetails();
-    }
+    if (id) fetch_();
   }, [id]);
 
-  // Check preview availability separately
   useEffect(() => {
-    const checkPreview = async () => {
+    const check = async () => {
       if (!id) return;
-      setCheckingPreview(true);
-      try {
-        const available = await checkPreviewAvailability(id);
-        setHasPreview(available);
-      } catch (err) {
-        console.error("Failed to check preview:", err);
-        setHasPreview(false);
-      } finally {
-        setCheckingPreview(false);
-      }
+      try { setHasPreview(await checkPreviewAvailability(id)); }
+      catch { setHasPreview(false); }
+      finally { setCheckingPreview(false); }
     };
-
-    checkPreview();
+    check();
   }, [id]);
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 lg:px-8 mt-24 min-h-[60vh] flex flex-col items-center justify-center">
-        <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-400">Loading book details...</p>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+      <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
+        style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
+    </div>
+  );
 
-  if (error || !book) {
-    return (
-      <div className="container mx-auto px-4 lg:px-8 mt-24 min-h-[60vh] flex flex-col items-center justify-center">
-        <div className="bg-[#13192b]/80 border border-red-500/30 p-8 rounded-3xl max-w-lg text-center shadow-xl shadow-black/20">
-          <AlertCircle size={48} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-100 mb-2">Oops!</h2>
-          <p className="text-slate-400 mb-6">{error || "Something went wrong."}</p>
-          <Link to="/" className="btn btn-primary !py-2 !px-6 text-sm rounded-full">
-            Return to Discover
-          </Link>
-        </div>
+  if (error || !book) return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
+      <div className="max-w-md w-full p-8 rounded-xl text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+        <AlertCircle size={40} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+        <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Oops!</h2>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error || 'Something went wrong.'}</p>
+        <Link to="/" className="btn btn-primary">Return Home</Link>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const fileUrl = book.fileUrl?.startsWith('http') ? book.fileUrl : book.fileUrl ? `${API_URL}${book.fileUrl}` : null;
 
   return (
-    <div className="w-full relative min-h-screen pb-20">
-      {/* Background Orbs & Effects */}
-      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-[#13192b] to-transparent pointer-events-none z-0"></div>
-      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      
-      <div className="container mx-auto px-4 lg:px-8 mt-24 relative z-10">
-        <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-orange-400 transition-colors mb-8 group">
-          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back to Discover
-        </Link>
-        
-        {/* Hero Section */}
-        <div className="glass-panel p-6 md:p-10 rounded-3xl border border-white/5 bg-[#13192b]/60 mb-12 shadow-2xl shadow-black/20 relative overflow-hidden">
-          {/* subtle glow behind book */}
-          <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-orange-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+    <div className="min-h-screen pb-20" style={{ background: 'var(--bg-primary)' }}>
+      <div className="max-w-5xl mx-auto px-4 lg:px-8 pt-10">
 
-          <div className="flex flex-col lg:flex-row gap-10 items-start relative z-10">
-            {/* Book Cover */}
-            <div className="w-full sm:w-2/3 md:w-1/2 lg:w-1/3 xl:w-1/4 mx-auto lg:mx-0 flex-shrink-0">
-              <div className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl shadow-orange-500/20 border border-white/10 group bg-[#0b0f19]">
-                <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+        <Link to="/" className="inline-flex items-center gap-2 text-sm mb-8 transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
+          <ArrowLeft size={15} /> Back
+        </Link>
+
+        {/* Hero */}
+        <div className="p-6 md:p-8 rounded-xl mb-8" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            {/* Cover */}
+            <div className="w-40 md:w-48 shrink-0 mx-auto md:mx-0">
+              <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-xl" style={{ border: '1px solid var(--border-subtle)' }}>
+                <img src={resolveCover(book.coverImage)} alt={book.title} className="w-full h-full object-cover" />
               </div>
             </div>
-            
-            {/* Book Info */}
-            <div className="flex-grow flex flex-col items-center text-center lg:items-start lg:text-left w-full">
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-4">
-                <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-3 py-1 rounded-full text-sm font-semibold tracking-wide uppercase">
+
+            {/* Info */}
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
+                <span className="px-2.5 py-1 rounded-md text-xs font-semibold"
+                  style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
                   {book.category}
                 </span>
-                <div className="flex items-center gap-1 bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-md">
-                  <Star size={16} className="fill-orange-400 text-orange-400" />
-                  <span className="font-bold text-slate-200">{book.rating}</span>
-                </div>
+                {book.rating && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold"
+                    style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+                    <Star size={11} className="fill-current" /> {typeof book.rating === 'number' ? book.rating.toFixed(1) : book.rating}
+                  </span>
+                )}
               </div>
-              
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-2 text-slate-50 leading-tight">{book.title}</h1>
-              <p className="text-xl text-slate-400 mb-8">by <span className="text-gradient font-medium">{book.author}</span></p>
-              
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 md:gap-10 mb-10 p-4 rounded-2xl bg-black/20 border border-white/5 w-full lg:w-auto">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400"><BookOpen size={20} /></div>
-                  <div className="flex flex-col"><span className="text-xs text-slate-500">Length</span><span className="font-semibold">{book.pages || 'Unknown'} Pages</span></div>
-                </div>
-                <div className="w-px h-10 bg-white/10 hidden sm:block"></div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400"><Clock size={20} /></div>
-                  <div className="flex flex-col"><span className="text-xs text-slate-500">Est. Time</span><span className="font-semibold">{book.pages ? `~${Math.ceil((book.pages * 250) / 200 / 60)}h Read` : 'Unknown'}</span></div>
-                </div>
-                <div className="w-px h-10 bg-white/10 hidden sm:block"></div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <div className="flex flex-col"><span className="text-xs text-slate-500">Released</span><span className="font-semibold text-lg">{book.publishYear}</span></div>
-                </div>
+
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>{book.title}</h1>
+              <p className="text-base mb-6" style={{ color: 'var(--text-secondary)' }}>by <span style={{ color: 'var(--text-primary)' }}>{book.author}</span></p>
+
+              {/* Meta */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 mb-7 text-sm" style={{ color: 'var(--text-muted)' }}>
+                {book.pages > 0 && (
+                  <span className="flex items-center gap-1.5"><BookOpen size={14} /> {book.pages} pages</span>
+                )}
+                {book.pages > 0 && (
+                  <span className="flex items-center gap-1.5"><Clock size={14} /> ~{Math.ceil((book.pages * 250) / 200 / 60)}h read</span>
+                )}
+                {book.publishYear && <span>{book.publishYear}</span>}
               </div>
-              
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mt-auto">
-                {book.fileUrl ? (
-                  <Link 
-                    to={`/read/${book.id}`} 
-                    state={{ fileUrl: book.fileUrl }}
-                    className="btn btn-primary !py-4 px-8 !text-lg rounded-xl shadow-xl shadow-orange-500/20 w-full sm:w-auto flex items-center justify-center gap-3"
-                  >
-                    <BookOpen size={22} /> Read Book Now
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                {fileUrl ? (
+                  <Link to={`/read/${book._id || book.id}`} state={{ fileUrl }}
+                    className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                    <BookOpen size={16} /> Read Now
                   </Link>
                 ) : checkingPreview ? (
-                  <button disabled className="btn btn-primary !py-4 px-8 !text-lg rounded-xl shadow-xl shadow-orange-500/20 w-full sm:w-auto flex items-center justify-center gap-3 opacity-70 cursor-wait">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Checking Preview...
+                  <button disabled className="btn btn-primary !px-6 !py-2.5 opacity-60 cursor-wait flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-fg)', borderTopColor: 'transparent' }} />
+                    Checking…
                   </button>
                 ) : hasPreview ? (
-                  <Link to={`/read/${book.id}`} className="btn btn-primary !py-4 px-8 !text-lg rounded-xl shadow-xl shadow-orange-500/20 w-full sm:w-auto flex items-center justify-center gap-3">
-                    <BookOpen size={22} /> Read Book Now
+                  <Link to={`/read/${book._id || book.id}`} className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                    <BookOpen size={16} /> Read Now
                   </Link>
                 ) : (
-                  <a 
-                    href={`https://books.google.com/books?id=${book.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primary !py-4 px-8 !text-lg rounded-xl shadow-xl shadow-orange-500/20 w-full sm:w-auto flex items-center justify-center gap-3"
-                  >
-                    <ExternalLink size={22} /> View on Google Books
+                  <a href={`https://books.google.com/books?id=${id}`} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                    <ExternalLink size={16} /> View on Google Books
                   </a>
                 )}
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-center">
-                  <button 
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 border ${isFavorite ? 'bg-orange-500/10 border-orange-500/30 text-orange-500 rotate-6 shadow-lg shadow-orange-500/10' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'}`} 
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    aria-label="Favorite"
-                  >
-                    <Heart size={24} className={isFavorite ? "fill-orange-500 scale-110 transition-transform" : "transition-transform"} />
-                  </button>
-                  <button 
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 border ${isBookmarked ? 'bg-orange-500/10 border-orange-500/30 text-orange-500 shadow-lg shadow-orange-500/10' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'}`} 
-                    onClick={() => setIsBookmarked(!isBookmarked)}
-                    aria-label="Bookmark"
-                  >
-                    <Bookmark size={24} className={isBookmarked ? "fill-orange-500 transform translate-y-1 transition-transform" : "transition-transform"} />
-                  </button>
-                  <button className="w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Share">
-                    <Share2 size={24} />
-                  </button>
+
+                <div className="flex items-center gap-2">
+                  {[
+                    { icon: Heart,    active: isFavorite,   toggle: () => setIsFavorite(p => !p),   label: 'Favorite'  },
+                    { icon: Bookmark, active: isBookmarked, toggle: () => setIsBookmarked(p => !p), label: 'Bookmark'  },
+                    { icon: Share2,   active: false,        toggle: () => {},                        label: 'Share'     },
+                  ].map(({ icon: Icon, active, toggle, label }) => (
+                    <button key={label} onClick={toggle} aria-label={label}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
+                      style={{
+                        background: active ? 'var(--accent)' : 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-default)',
+                        color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                      }}>
+                      <Icon size={16} className={active ? 'fill-current' : ''} />
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Content Split */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 flex flex-col gap-8">
-            <div className="glass-panel p-8 rounded-3xl border border-white/5 bg-[#13192b]/40">
-              <h2 className="text-2xl font-bold mb-4 text-slate-100 flex items-center gap-3">
-                <div className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
-                Synopsis
-              </h2>
-              <p className="text-slate-300 leading-relaxed text-lg whitespace-pre-line">{book.description || 'No synopsis available for this book.'}</p>
+
+        {/* Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
+            {/* Synopsis */}
+            <div className="p-6 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+              <h2 className="text-base font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Synopsis</h2>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {book.description || 'No synopsis available.'}
+              </p>
             </div>
-            
-            <div className="glass-panel p-8 rounded-3xl border border-orange-500/20 bg-gradient-to-br from-[#13192b] to-orange-900/10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
-              
-              <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-400 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
-                <span>✨</span> AI Generated Summary
+
+            {/* AI Summary */}
+            {book.aiSummary && (
+              <div className="p-6 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                    style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                    ✦ AI Summary
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed italic" style={{ color: 'var(--text-secondary)', borderLeft: '2px solid var(--border-strong)', paddingLeft: '1rem' }}>
+                  {book.aiSummary}
+                </p>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-slate-100">Quick Insights</h3>
-              <p className="text-slate-300 leading-relaxed italic border-l-2 border-orange-500/50 pl-4">{book.aiSummary}</p>
-            </div>
+            )}
           </div>
-          
+
+          {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="glass-panel p-8 rounded-3xl border border-white/5 bg-[#13192b]/40 sticky top-24">
-              <h3 className="text-xl font-bold mb-6 text-slate-100 flex items-center gap-3">
-                <div className="w-2 h-6 bg-gradient-to-b from-slate-500 to-slate-700 rounded-full"></div>
-                Similar Books
-              </h3>
-              <div className="p-6 rounded-2xl bg-black/20 border border-white/5 border-dashed flex flex-col items-center justify-center text-center">
-                <BookOpen size={32} className="text-slate-600 mb-3" />
-                <p className="text-slate-400 font-medium">More books coming soon...</p>
-                <p className="text-sm text-slate-500 mt-2">Check back later for personalized recommendations.</p>
+            <div className="p-6 rounded-xl sticky top-24" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+              <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Similar Books</h3>
+              <div className="py-10 text-center rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-default)' }}>
+                <BookOpen size={28} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Coming soon</p>
               </div>
             </div>
           </div>

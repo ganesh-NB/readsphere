@@ -305,3 +305,32 @@ export const getBooksWithPreview = async (maxResults = 10) => {
   // For Gutenberg, most books have PDF, so we return popular books
   return getTrendingBooks(maxResults);
 };
+
+// ── Backend community books (user + admin uploaded, approved) ─────────────────
+const BACKEND_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
+
+/**
+ * Fetch approved books uploaded by users or added by admin from our backend.
+ * These are real books stored in MongoDB.
+ */
+export const getCommunityBooks = async (limit = 12) => {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/books?limit=${limit}&sortBy=newest`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    // Normalise _id → id so BookCard works with both Gutenberg and backend books
+    return (data.books || []).map((b) => ({
+      ...b,
+      id: b._id || b.id,
+      coverImage: b.coverImage
+        ? (b.coverImage.startsWith('http') ? b.coverImage : `${BACKEND_URL}${b.coverImage}`)
+        : '',
+      fileUrl: b.fileUrl
+        ? (b.fileUrl.startsWith('http') ? b.fileUrl : `${BACKEND_URL}${b.fileUrl}`)
+        : '',
+    }));
+  } catch (err) {
+    console.warn('Could not fetch community books:', err);
+    return [];
+  }
+};

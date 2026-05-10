@@ -1,238 +1,155 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Moon, Sun, BookOpen, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, BookOpen, AlertCircle } from 'lucide-react';
 import { getBookDetails } from '../services/api';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Reader = () => {
-  const { id } = useParams();
-  const location = useLocation();
-  const [bookTitle, setBookTitle] = useState('Loading Book...');
-  const [book, setBook] = useState(null);
-  const [theme, setTheme] = useState('dark');
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [readerType, setReaderType] = useState('google'); // 'google' | 'pdf' | 'epub' | 'none'
-  const [fileUrl, setFileUrl] = useState(null);
+  const { id }       = useParams();
+  const location     = useLocation();
+  const navFileUrl   = location.state?.fileUrl;
+
+  const [bookTitle,   setBookTitle]   = useState('Loading…');
+  const [readerType,  setReaderType]  = useState('google');
+  const [fileUrl,     setFileUrl]     = useState(null);
+  const [isLoading,   setIsLoading]   = useState(true);
+  const [hasError,    setHasError]    = useState(false);
+  const [isDark,      setIsDark]      = useState(true);
   const viewerRef = useRef(null);
-  const isDark = theme === 'dark';
 
-  // Check if we have a direct file URL from navigation state
-  const navFileUrl = location.state?.fileUrl;
-
-  // Fetch book details and determine reader type
   useEffect(() => {
-    const fetchBookDetails = async () => {
+    const load = async () => {
       try {
-        const bookData = await getBookDetails(id);
-        if (bookData) {
-          setBook(bookData);
-          setBookTitle(bookData.title);
-          
-          // Determine reader type based on available sources
-          if (navFileUrl || bookData.fileUrl) {
-            const url = navFileUrl || bookData.fileUrl;
-            setFileUrl(url);
-            
-            // Determine type from URL extension
-            if (url.endsWith('.pdf')) {
-              setReaderType('pdf');
-            } else if (url.endsWith('.epub')) {
-              setReaderType('epub');
-            } else {
-              setReaderType('pdf'); // default to pdf viewer
-            }
+        const data = await getBookDetails(id);
+        if (data) {
+          setBookTitle(data.title);
+          const url = navFileUrl || data.fileUrl;
+          if (url) {
+            const resolved = url.startsWith('http') ? url : `${API_URL}${url}`;
+            setFileUrl(resolved);
+            setReaderType(url.endsWith('.epub') ? 'epub' : 'pdf');
           } else {
             setReaderType('google');
           }
         }
-      } catch (err) {
-        console.error("Failed to load book:", err);
-        setReaderType('google'); // fallback to google
-      }
+      } catch { setReaderType('google'); }
     };
-    if (id) fetchBookDetails();
+    if (id) load();
   }, [id, navFileUrl]);
 
-  // Initialize appropriate viewer based on reader type
   useEffect(() => {
-    // Skip if using direct file viewer (PDF/EPUB)
-    if (readerType === 'pdf' || readerType === 'epub') {
-      setIsLoading(false);
-      setHasError(false);
-      return;
-    }
+    if (readerType === 'pdf' || readerType === 'epub') { setIsLoading(false); return; }
+    if (readerType !== 'google') return;
 
-    // Skip if no google reader
-    if (readerType !== 'google') {
-      return;
-    }
-
-    let viewer = null;
-    let isMounted = true;
-
-    const initializeViewer = () => {
-      if (!isMounted) return;
-      if (!window.google || !window.google.books) return;
-
+    let mounted = true;
+    const init = () => {
+      if (!mounted || !viewerRef.current) return;
       try {
-        if (!viewerRef.current) return;
-        
-        viewer = new window.google.books.DefaultViewer(viewerRef.current);
-        viewer.load(
-          id, 
-          () => {
-            if (isMounted) {
-              setIsLoading(false);
-              setHasError(false);
-            }
-          }, 
-          () => {
-            if (isMounted) {
-              setIsLoading(false);
-              setHasError(true);
-            }
-          }
-        );
-      } catch (error) {
-        console.error("Error initializing viewer:", error);
-        if (isMounted) {
-          setHasError(true);
-          setIsLoading(false);
-        }
-      }
+        const v = new window.google.books.DefaultViewer(viewerRef.current);
+        v.load(id, () => { if (mounted) { setIsLoading(false); setHasError(false); } },
+                    () => { if (mounted) { setIsLoading(false); setHasError(true);  } });
+      } catch { if (mounted) { setHasError(true); setIsLoading(false); } }
     };
 
-    const loadBooksApi = () => {
-      if (window.google && window.google.load) {
-        window.google.load("books", "0", {
-          callback: initializeViewer
-        });
-      } else {
-        if (isMounted) {
-          setHasError(true);
-          setIsLoading(false);
-        }
-      }
+    const loadApi = () => {
+      if (window.google?.load) window.google.load('books', '0', { callback: init });
+      else { setHasError(true); setIsLoading(false); }
     };
 
-    // Check if script is already present
     let script = document.getElementById('google-books-api');
     if (!script) {
       script = document.createElement('script');
-      script.id = 'google-books-api';
+      script.id  = 'google-books-api';
       script.src = 'https://www.google.com/books/jsapi.js';
-      script.type = 'text/javascript';
-      script.onload = () => {
-        if (isMounted) loadBooksApi();
-      };
+      script.onload = () => { if (mounted) loadApi(); };
       document.head.appendChild(script);
-    } else {
-      // Script already exists, load module
-      loadBooksApi();
-    }
+    } else { loadApi(); }
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { mounted = false; };
   }, [id, readerType]);
 
+  const headerBg = isDark ? 'var(--bg-surface)' : '#ffffff';
+  const headerBorder = isDark ? 'var(--border-subtle)' : 'rgba(0,0,0,0.08)';
+
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isDark ? 'bg-[#0b0f19] text-slate-300' : 'bg-orange-50/50 text-slate-800'}`}>
-      
+    <div className="min-h-screen flex flex-col" style={{ background: isDark ? 'var(--bg-primary)' : '#f8f8f8' }}>
+
       {/* Header */}
-      <header className={`flex-none z-50 flex items-center justify-between px-4 lg:px-8 py-4 border-b transition-colors duration-500 ${isDark ? 'bg-[#13192b] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-        <div className="flex items-center gap-4">
-          <Link to={`/book/${id}`} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
-            <ArrowLeft size={20} />
+      <header className="flex-none z-50 flex items-center justify-between px-4 lg:px-8 py-3.5"
+        style={{ background: headerBg, borderBottom: `1px solid ${headerBorder}` }}>
+        <div className="flex items-center gap-3">
+          <Link to={`/book/${id}`}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+            style={{ background: 'var(--bg-surface-elevated)', color: 'var(--text-secondary)' }}>
+            <ArrowLeft size={16} />
           </Link>
-          <div className="flex flex-col">
-            <h3 className={`font-semibold text-sm ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{bookTitle}</h3>
-            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-              {readerType === 'pdf' ? 'PDF Viewer' : readerType === 'epub' ? 'EPUB Reader' : 'Google Books Embedded Viewer'}
+          <div>
+            <h3 className="text-sm font-semibold leading-tight" style={{ color: isDark ? 'var(--text-primary)' : '#111' }}>
+              {bookTitle}
+            </h3>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {readerType === 'pdf' ? 'PDF Viewer' : readerType === 'epub' ? 'EPUB Reader' : 'Google Books'}
             </span>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button 
-            className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-orange-400' : 'hover:bg-slate-100 text-orange-500'}`} 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle Theme"
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
+
+        <button onClick={() => setIsDark(d => !d)} aria-label="Toggle theme"
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+          style={{ background: 'var(--bg-surface-elevated)', color: 'var(--text-secondary)' }}>
+          {isDark ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full relative bg-white">
-        
+      {/* Content */}
+      <main className="flex-1 relative" style={{ background: isDark ? '#000' : '#fff' }}>
+
+        {/* Loading */}
         {isLoading && (
-           <div className={`absolute inset-0 flex flex-col items-center justify-center z-10 ${isDark ? 'bg-[#0b0f19]' : 'bg-slate-50'}`}>
-            <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-4"></div>
-            <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>Loading electronic reader...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
+            style={{ background: isDark ? 'var(--bg-primary)' : '#f8f8f8' }}>
+            <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mb-3"
+              style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading reader…</p>
           </div>
         )}
 
+        {/* Error */}
         {hasError && !isLoading && (
-          <div className={`absolute inset-0 flex flex-col items-center justify-center z-20 p-6 text-center ${isDark ? 'bg-[#0b0f19]' : 'bg-slate-50'}`}>
-            <AlertCircle size={64} className="text-orange-500 mb-6" />
-            <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Preview Not Available</h2>
-            <p className={`max-w-md mx-auto mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Unfortunately, the publisher has not made this book available for embedded preview, or the requested volume could not be loaded.
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-6 text-center"
+            style={{ background: isDark ? 'var(--bg-primary)' : '#f8f8f8' }}>
+            <AlertCircle size={48} className="mb-5" style={{ color: 'var(--text-muted)' }} />
+            <h2 className="text-xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Preview Not Available</h2>
+            <p className="text-sm max-w-md mb-6" style={{ color: 'var(--text-secondary)' }}>
+              The publisher has not made this book available for embedded preview.
             </p>
-            <p className={`max-w-md mx-auto mb-8 text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-              This is a restriction set by the book's publisher or author. Not all books on Google Books support embedded reading.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a 
-                href={`https://books.google.com/books?id=${id}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn btn-primary inline-flex items-center justify-center gap-2 !py-3 !px-6 rounded-full"
-              >
-                <BookOpen size={20} /> View on Google Books
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href={`https://books.google.com/books?id=${id}`} target="_blank" rel="noopener noreferrer"
+                className="btn btn-primary flex items-center gap-2">
+                <BookOpen size={16} /> View on Google Books
               </a>
-              <Link 
-                to={`/book/${id}`}
-                className={`btn inline-flex items-center justify-center gap-2 !py-3 !px-6 rounded-full ${isDark ? 'bg-white/10 hover:bg-white/20 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-800'}`}
-              >
-                <ArrowLeft size={20} /> Back to Book Details
+              <Link to={`/book/${id}`} className="btn btn-outline flex items-center gap-2">
+                <ArrowLeft size={16} /> Back to Details
               </Link>
             </div>
           </div>
         )}
 
-        {/* PDF Viewer */}
+        {/* PDF */}
         {readerType === 'pdf' && fileUrl && (
-          <div className={`w-full h-full absolute inset-0 transition-opacity duration-1000 ${isLoading ? 'opacity-0 z-0' : 'opacity-100 z-30'}`}>
-            <iframe
-              src={`${fileUrl}#toolbar=1&navpanes=1`}
-              className="w-full h-full border-none"
-              title={bookTitle}
-            />
-          </div>
+          <iframe src={`${fileUrl}#toolbar=1`} className="w-full h-full absolute inset-0 border-none" title={bookTitle} />
         )}
 
-        {/* EPUB Viewer - Simple iframe fallback */}
+        {/* EPUB */}
         {readerType === 'epub' && fileUrl && (
-          <div className={`w-full h-full absolute inset-0 transition-opacity duration-1000 ${isLoading ? 'opacity-0 z-0' : 'opacity-100 z-30'}`}>
-            <iframe
-              src={fileUrl}
-              className="w-full h-full border-none"
-              title={bookTitle}
-            />
-          </div>
+          <iframe src={fileUrl} className="w-full h-full absolute inset-0 border-none" title={bookTitle} />
         )}
 
-        {/* Google Books Viewer Container */}
+        {/* Google Books */}
         {readerType === 'google' && (
-          <div 
-            ref={viewerRef} 
-            className={`w-full h-full absolute inset-0 transition-opacity duration-1000 ${isLoading || hasError ? 'opacity-0 z-0' : 'opacity-100 z-30'}`}
-          ></div>
+          <div ref={viewerRef}
+            className={`w-full h-full absolute inset-0 transition-opacity duration-500 ${isLoading || hasError ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
         )}
-
       </main>
     </div>
   );
