@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, BookOpen, Bookmark, Heart, ArrowLeft, Clock, Share2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Star, BookOpen, Bookmark, Heart, ArrowLeft, Clock, Share2, AlertCircle, ExternalLink, Check } from 'lucide-react';
 import { getBookDetails, checkPreviewAvailability } from '../services/api';
+import { addFavorite, removeFavorite, isFavorited, saveBookmark, removeBookmark, getBookmark } from '../services/userLibrary';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -18,6 +19,7 @@ const BookDetails = () => {
   const [error,           setError]           = useState(null);
   const [isFavorite,      setIsFavorite]      = useState(false);
   const [isBookmarked,    setIsBookmarked]    = useState(false);
+  const [actionMsg,       setActionMsg]       = useState('');
   const [hasPreview,      setHasPreview]      = useState(null);
   const [checkingPreview, setCheckingPreview] = useState(true);
 
@@ -26,8 +28,16 @@ const BookDetails = () => {
       setIsLoading(true); setError(null);
       try {
         const data = await getBookDetails(id);
-        if (data) setBook(data);
-        else setError('Book not found.');
+        if (data) {
+          setBook(data);
+          // Load saved state
+          const [fav, bm] = await Promise.all([
+            isFavorited(data._id || data.id),
+            Promise.resolve(getBookmark(data._id || data.id)),
+          ]);
+          setIsFavorite(fav);
+          setIsBookmarked(bm !== null);
+        } else setError('Book not found.');
       } catch { setError('Failed to load book details.'); }
       finally { setIsLoading(false); }
     };
@@ -44,7 +54,46 @@ const BookDetails = () => {
     check();
   }, [id]);
 
-  if (isLoading) return (
+  const showMsg = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 2500); };
+
+  const toggleFavorite = async () => {
+    if (!book) return;
+    try {
+      if (isFavorite) {
+        await removeFavorite(book._id || book.id);
+        setIsFavorite(false);
+        showMsg('Removed from favorites');
+      } else {
+        await addFavorite(book);
+        setIsFavorite(true);
+        showMsg('Added to favorites ♥');
+      }
+    } catch (e) { showMsg(e.message); }
+  };
+
+  const toggleBookmark = async () => {
+    if (!book) return;
+    try {
+      if (isBookmarked) {
+        await removeBookmark(book._id || book.id);
+        setIsBookmarked(false);
+        showMsg('Bookmark removed');
+      } else {
+        await saveBookmark(book, 1);
+        setIsBookmarked(true);
+        showMsg('Bookmarked!');
+      }
+    } catch (e) { showMsg(e.message); }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: book?.title, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(window.location.href);
+      showMsg('Link copied!');
+    }
+  };
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
       <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
         style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
@@ -117,7 +166,7 @@ const BookDetails = () => {
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                 {fileUrl ? (
-                  <Link to={`/read/${book._id || book.id}`} state={{ fileUrl }}
+                  <Link to={`/read/${book._id || book.id}`} state={{ fileUrl, book }}
                     className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
                     <BookOpen size={16} /> Read Now
                   </Link>
@@ -127,33 +176,49 @@ const BookDetails = () => {
                     Checking…
                   </button>
                 ) : hasPreview ? (
-                  <Link to={`/read/${book._id || book.id}`} className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                  <Link to={`/read/${book._id || book.id}`} state={{ book }} className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
                     <BookOpen size={16} /> Read Now
                   </Link>
                 ) : (
-                  <a href={`https://books.google.com/books?id=${id}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://www.gutenberg.org/ebooks/${id}`} target="_blank" rel="noopener noreferrer"
                     className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
-                    <ExternalLink size={16} /> View on Google Books
+                    <ExternalLink size={16} /> Read on Gutenberg
                   </a>
                 )}
 
                 <div className="flex items-center gap-2">
-                  {[
-                    { icon: Heart,    active: isFavorite,   toggle: () => setIsFavorite(p => !p),   label: 'Favorite'  },
-                    { icon: Bookmark, active: isBookmarked, toggle: () => setIsBookmarked(p => !p), label: 'Bookmark'  },
-                    { icon: Share2,   active: false,        toggle: () => {},                        label: 'Share'     },
-                  ].map(({ icon: Icon, active, toggle, label }) => (
-                    <button key={label} onClick={toggle} aria-label={label}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
-                      style={{
-                        background: active ? 'var(--accent)' : 'var(--bg-surface-elevated)',
-                        border: '1px solid var(--border-default)',
-                        color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                      }}>
-                      <Icon size={16} className={active ? 'fill-current' : ''} />
-                    </button>
-                  ))}
+                  <button onClick={toggleFavorite} aria-label="Favorite"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
+                    style={{
+                      background: isFavorite ? 'var(--accent)' : 'var(--bg-surface-elevated)',
+                      border: '1px solid var(--border-default)',
+                      color: isFavorite ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                    }}>
+                    <Heart size={16} className={isFavorite ? 'fill-current' : ''} />
+                  </button>
+                  <button onClick={toggleBookmark} aria-label="Bookmark"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
+                    style={{
+                      background: isBookmarked ? 'var(--accent)' : 'var(--bg-surface-elevated)',
+                      border: '1px solid var(--border-default)',
+                      color: isBookmarked ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                    }}>
+                    <Bookmark size={16} className={isBookmarked ? 'fill-current' : ''} />
+                  </button>
+                  <button onClick={handleShare} aria-label="Share"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
+                    style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                    <Share2 size={16} />
+                  </button>
                 </div>
+
+                {/* Action feedback */}
+                {actionMsg && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                    style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                    <Check size={12} /> {actionMsg}
+                  </span>
+                )}
               </div>
             </div>
           </div>

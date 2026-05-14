@@ -1,12 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Heart, Bookmark, Clock, BookOpen, Upload, LogOut, AlertCircle, X, CheckCircle } from 'lucide-react';
+import {
+  Heart, Bookmark, Clock, Upload, LogOut,
+  AlertCircle, X, CheckCircle, FileText, Trash2, BookOpen, Eye
+} from 'lucide-react';
+import { getFavorites, getBookmarks, getReadingHistory,
+         removeFavorite as libRemoveFavorite,
+         removeBookmark as libRemoveBookmark } from '../services/userLibrary';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const S = {
-  card:   { background: 'var(--bg-surface)',   border: '1px solid var(--border-subtle)' },
-  inner:  { background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' },
+  card:  { background: 'var(--bg-surface)',   border: '1px solid var(--border-subtle)' },
+  inner: { background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' },
+};
+
+// Resolve cover image — handles relative backend paths
+const cover = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=300';
+  if (url.startsWith('http')) return url;
+  return `${API_URL}${url}`;
+};
+
+// Status badge colours
+const statusStyle = (s) => {
+  if (s === 'approved') return { background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' };
+  if (s === 'rejected') return { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' };
+  return { background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' };
 };
 
 const Profile = () => {
@@ -23,18 +43,24 @@ const Profile = () => {
   const token   = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const fetchProfile = async () => {
+  const fetchAll = async () => {
+    setIsLoading(true);
     try {
+      // Load user info from backend
       const res = await fetch(`${API_URL}/api/users/profile`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-        setFavorites(data.favorites || []);
-        setBookmarks(data.bookmarks || []);
-        setReadingHistory(data.readingHistory || []);
-      }
+      if (res.ok) setUser(await res.json());
+
+      // Load library data from unified service (localStorage + backend)
+      const [favs, bms, hist] = await Promise.all([
+        getFavorites(),
+        getBookmarks(),
+        getReadingHistory(),
+      ]);
+      setFavorites(favs);
+      setBookmarks(bms);
+      setReadingHistory(hist);
     } catch { setError('Failed to load profile'); }
     finally { setIsLoading(false); }
   };
@@ -48,18 +74,35 @@ const Profile = () => {
 
   useEffect(() => { if (activeTab === 'uploads') fetchMyUploads(); }, [activeTab]);
 
-  const removeFavorite = async (bookId) => {
+  const handleRemoveFavorite = async (bookId) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/favorites/${bookId}`, { method: 'DELETE', headers });
-      if (res.ok) { setFavorites(f => f.filter(b => b._id !== bookId)); setSuccess('Removed from favorites'); }
-    } catch { setError('Failed to remove favorite'); }
+      await libRemoveFavorite(bookId);
+      setFavorites(f => f.filter(b => (b._id || b.id) !== String(bookId)));
+      setSuccess('Removed from favorites');
+    } catch (e) { setError(e.message); }
   };
 
-  const removeBookmark = async (bookId) => {
+  const handleRemoveBookmark = async (bookId) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/bookmarks/${bookId}`, { method: 'DELETE', headers });
-      if (res.ok) { setBookmarks(b => b.filter(b => b.book._id !== bookId)); setSuccess('Bookmark removed'); }
-    } catch { setError('Failed to remove bookmark'); }
+      await libRemoveBookmark(bookId);
+      setBookmarks(b => b.filter(item => (item.book?._id || item.book?.id) !== String(bookId)));
+      setSuccess('Bookmark removed');
+    } catch (e) { setError(e.message); }
+  };
+
+  // Delete an uploaded book (only pending/rejected can be deleted by the user)
+  const handleDeleteUpload = async (bookId) => {
+    if (!window.confirm('Delete this upload? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/books/${bookId}`, { method: 'DELETE', headers });
+      if (res.ok) {
+        setMyUploads(u => u.filter(b => b._id !== bookId));
+        setSuccess('Upload deleted.');
+      } else {
+        const d = await res.json();
+        setError(d.message || 'Failed to delete upload');
+      }
+    } catch { setError('Network error'); }
   };
 
   const handleLogout = () => {
@@ -175,19 +218,23 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {favorites.map(book => (
-                      <div key={book._id} className="flex gap-3 p-3 rounded-lg" style={S.inner}>
-                        <img src={book.coverImage} alt={book.title} className="w-12 h-16 object-cover rounded-md shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{book.title}</h3>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{book.author}</p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <Link to={`/read/${book._id}`} className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Read</Link>
-                            <button onClick={() => removeFavorite(book._id)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Remove</button>
+                    {favorites.map(book => {
+                      const bookId = book._id || book.id;
+                      return (
+                        <div key={bookId} className="flex gap-3 p-3 rounded-lg" style={S.inner}>
+                          <img src={cover(book.coverImage)} alt={book.title}
+                            className="w-12 h-16 object-cover rounded-md shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{book.title}</h3>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{book.author}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Link to={`/book/${bookId}`} className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>View</Link>
+                              <button onClick={() => handleRemoveFavorite(bookId)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Remove</button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -204,21 +251,27 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {bookmarks.map(item => (
-                      <div key={item.book._id} className="flex items-center justify-between p-3 rounded-lg" style={S.inner}>
-                        <div className="flex items-center gap-3">
-                          <img src={item.book.coverImage} alt={item.book.title} className="w-10 h-14 object-cover rounded-md" />
-                          <div>
-                            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.book.title}</h3>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {item.page}</p>
+                    {bookmarks.map(item => {
+                      const bookId = item.book?._id || item.book?.id;
+                      return (
+                        <div key={bookId} className="flex items-center justify-between p-3 rounded-lg" style={S.inner}>
+                          <div className="flex items-center gap-3">
+                            <img src={cover(item.book?.coverImage)} alt={item.book?.title}
+                              className="w-10 h-14 object-cover rounded-md" />
+                            <div>
+                              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.book?.title}</h3>
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {item.page}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Link to={`/read/${bookId}`} state={{ page: item.page }}
+                              className="btn btn-primary !py-1.5 !px-3 !text-xs">Continue</Link>
+                            <button onClick={() => handleRemoveBookmark(bookId)}
+                              style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Link to={`/read/${item.book._id}`} state={{ page: item.page }} className="btn btn-primary !py-1.5 !px-3 !text-xs">Continue</Link>
-                          <button onClick={() => removeBookmark(item.book._id)} style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -236,18 +289,24 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {readingHistory.map(item => (
-                      <div key={item.book._id} className="flex items-center justify-between p-3 rounded-lg" style={S.inner}>
-                        <div className="flex items-center gap-3">
-                          <img src={item.book.coverImage} alt={item.book.title} className="w-10 h-14 object-cover rounded-md" />
-                          <div>
-                            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.book.title}</h3>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {item.lastPage} · {new Date(item.lastRead).toLocaleDateString()}</p>
+                    {readingHistory.map(item => {
+                      const bookId = item.book?._id || item.book?.id;
+                      return (
+                        <div key={bookId} className="flex items-center justify-between p-3 rounded-lg" style={S.inner}>
+                          <div className="flex items-center gap-3">
+                            <img src={cover(item.book?.coverImage)} alt={item.book?.title}
+                              className="w-10 h-14 object-cover rounded-md" />
+                            <div>
+                              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.book?.title}</h3>
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(item.lastRead).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
+                          <Link to={`/book/${bookId}`} className="btn btn-primary !py-1.5 !px-3 !text-xs">View</Link>
                         </div>
-                        <Link to={`/read/${item.book._id}`} state={{ page: item.lastPage }} className="btn btn-primary !py-1.5 !px-3 !text-xs">Continue</Link>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -256,30 +315,137 @@ const Profile = () => {
             {/* Uploads */}
             {activeTab === 'uploads' && (
               <div className="p-6 rounded-xl" style={S.card}>
-                <div className="flex justify-between items-center mb-5">
-                  <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>My Uploads</h2>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>My Uploads</h2>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Books you've submitted — pending review, approved, or rejected
+                    </p>
+                  </div>
                   <Link to="/upload" className="btn btn-primary !py-1.5 !px-3 !text-xs flex items-center gap-1.5">
                     <Upload size={13} /> Upload Book
                   </Link>
                 </div>
+
                 {myUploads.length === 0 ? (
                   <div className="py-16 text-center">
-                    <Upload size={40} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>No uploads yet.</p>
-                    <Link to="/upload" className="btn btn-primary !text-sm">Upload Book</Link>
+                    <FileText size={40} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>No uploads yet</p>
+                    <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+                      Share a book with the community — upload a PDF and it'll go live after admin review.
+                    </p>
+                    <Link to="/upload" className="btn btn-primary !text-sm">Upload Your First Book</Link>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {myUploads.map(book => (
-                      <div key={book._id} className="flex items-center justify-between p-3 rounded-lg" style={S.inner}>
-                        <div>
-                          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{book.title}</h3>
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{book.author}</p>
+                  <div className="space-y-3">
+                    {myUploads.map(book => {
+                      const coverUrl = cover(book.coverImage);
+                      const fileUrl  = book.fileUrl?.startsWith('http')
+                        ? book.fileUrl
+                        : `${API_URL}${book.fileUrl}`;
+                      const canDelete  = book.uploadStatus !== 'approved';
+                      const canRead    = book.uploadStatus === 'approved' && book.fileUrl;
+
+                      return (
+                        <div key={book._id} className="flex gap-4 p-4 rounded-xl transition-all duration-150"
+                          style={S.inner}
+                          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-default)'}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}>
+
+                          {/* Cover */}
+                          <div className="w-14 h-20 shrink-0 rounded-lg overflow-hidden"
+                            style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
+                            <img src={coverUrl} alt={book.title}
+                              className="w-full h-full object-cover"
+                              onError={e => { e.target.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=300'; }} />
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                {book.title}
+                              </h3>
+                              {/* Status badge */}
+                              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                style={statusStyle(book.uploadStatus)}>
+                                {book.uploadStatus}
+                              </span>
+                            </div>
+
+                            <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                              by {book.author}
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              {book.category && (
+                                <span className="px-2 py-0.5 rounded-md"
+                                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                                  {book.category}
+                                </span>
+                              )}
+                              {book.pages > 0 && <span>{book.pages} pages</span>}
+                              {book.publishYear && <span>{book.publishYear}</span>}
+                              <span>{new Date(book.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            {/* Status message */}
+                            {book.uploadStatus === 'pending' && (
+                              <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                                ⏳ Waiting for admin review. You'll see it in the community section once approved.
+                              </p>
+                            )}
+                            {book.uploadStatus === 'rejected' && (
+                              <p className="text-[11px] mt-2" style={{ color: '#f87171' }}>
+                                ✕ This upload was rejected. You can delete it and try uploading again.
+                              </p>
+                            )}
+                            {book.uploadStatus === 'approved' && (
+                              <p className="text-[11px] mt-2" style={{ color: '#4ade80' }}>
+                                ✓ Published — visible to all readers in the Community Books section.
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-col gap-2 shrink-0 justify-start">
+                            {canRead && (
+                              <Link to={`/read/${book._id}`} state={{ fileUrl, book }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}>
+                                <BookOpen size={12} /> Read
+                              </Link>
+                            )}
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                              <Eye size={12} /> Preview
+                            </a>
+                            {canDelete && (
+                              <button onClick={() => handleDeleteUpload(book._id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+                                <Trash2 size={12} /> Delete
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase"
-                          style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-                          {book.uploadStatus}
-                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Summary counts */}
+                {myUploads.length > 0 && (
+                  <div className="flex gap-4 mt-6 pt-5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    {[
+                      { label: 'Pending',  count: myUploads.filter(b => b.uploadStatus === 'pending').length,  color: 'var(--text-secondary)' },
+                      { label: 'Approved', count: myUploads.filter(b => b.uploadStatus === 'approved').length, color: '#4ade80' },
+                      { label: 'Rejected', count: myUploads.filter(b => b.uploadStatus === 'rejected').length, color: '#f87171' },
+                    ].map(({ label, count, color }) => (
+                      <div key={label} className="text-center">
+                        <p className="text-lg font-bold" style={{ color }}>{count}</p>
+                        <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</p>
                       </div>
                     ))}
                   </div>
