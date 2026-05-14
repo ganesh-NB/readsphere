@@ -10,18 +10,24 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware
 app.use(cors({
-  origin: [
-    'https://readsphere-pvw0941xs-ganesh-nb.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://localhost:3000'
-  ],
+  origin: function (origin, callback) {
+    // Allow no-origin requests (mobile, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    const allowed = [
+      /\.vercel\.app$/,        // all vercel preview URLs
+      /^http:\/\/localhost:/   // all localhost ports
+    ];
+
+    const isAllowed = allowed.some(pattern => pattern.test(origin));
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
