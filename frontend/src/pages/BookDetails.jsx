@@ -94,11 +94,12 @@ const BookDetails = () => {
       showMsg('Link copied!');
     }
   };
+     if (isLoading) return (  
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
       <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
         style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
     </div>
-
+     );
   if (error || !book) return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
       <div className="max-w-md w-full p-8 rounded-xl text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
