@@ -98,7 +98,6 @@ const BookDetails = () => {
       <div className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
         style={{ borderColor: 'var(--border-strong)', borderTopColor: 'var(--accent)' }} />
     </div>
-  );
 
   if (error || !book) return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
