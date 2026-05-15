@@ -4,7 +4,7 @@ import { BookOpen, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, Shield } fr
 
 const ADMIN_EMAIL    = 'ganesh@readsphere.com';
 const ADMIN_PASSWORD = 'Ganesh@123';
-const API_URL        = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL        = import.meta.env.VITE_API_URL;
 
 /* ── Book covers shown on the left panel ──────────────────────────────────── */
 const COVERS = [
@@ -79,10 +79,18 @@ const Login = () => {
     if (!email || !pass) { setError('Both fields are required.'); return; }
     setLoading(true);
     try {
-      const res  = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass }),
-      });
+
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+     method: 'POST',
+     credentials: 'include',
+      headers: {
+    'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+    email,
+    password: pass
+     }),
+   });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Invalid credentials.');
       if (data.user?.role !== 'admin') throw new Error('This account does not have admin access.');

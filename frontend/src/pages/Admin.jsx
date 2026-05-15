@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   BarChart3, BookOpen, Upload, Users, Plus, Edit2, Trash2,
   CheckCircle, XCircle, X, AlertCircle, Search, Eye,
   TrendingUp, FileText, Calendar, User, Image, Link as LinkIcon,
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const CATEGORIES = [
   'Fiction', 'Mystery', 'Romance', 'Sci-Fi', 'Horror',
@@ -407,6 +407,18 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+     method: 'POST',
+     credentials: 'include',
+      headers: {
+    'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+    email,
+    password: pass
+     }),
+   });
     try {
       if (uploadMode === 'file') {
         // Upload PDF via /api/uploads then auto-approve
