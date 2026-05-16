@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react'; // ✅ Fix 1: added useCallback
 import {
   BarChart3, BookOpen, Upload, Users, Plus, Edit2, Trash2,
   CheckCircle, XCircle, X, AlertCircle, Search, Eye,
@@ -47,13 +47,13 @@ const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
   </div>
 );
 
-// ─── Book Form Modal (supports PDF upload + URL, same as user upload page) ─────
+// ─── Book Form Modal ───────────────────────────────────────────────────────────
 const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) => {
   const [form,         setForm]         = useState(EMPTY_FORM);
   const [pdfFile,      setPdfFile]      = useState(null);
   const [coverFile,    setCoverFile]    = useState(null);
   const [coverPreview, setCoverPreview] = useState('');
-  const [uploadMode,   setUploadMode]   = useState('url'); // 'url' | 'file'
+  const [uploadMode,   setUploadMode]   = useState('url');
   const [progress,     setProgress]     = useState(0);
   const pdfRef   = useRef(null);
   const coverRef = useRef(null);
@@ -101,14 +101,12 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-surface border border-[var(--border-default)] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-[var(--border-subtle)]">
           <h2 className="text-lg font-bold text-[var(--text-primary)]">{initial ? 'Edit Book' : 'Add New Book'}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><X size={20} /></button>
         </div>
 
         <div className="px-7 py-6 space-y-5">
-          {/* Title + Author */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Title *</label>
@@ -120,14 +118,12 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Description</label>
             <textarea name="description" value={form.description} onChange={handle}
               placeholder="Brief description…" rows={3} className={`${inp} resize-none`} />
           </div>
 
-          {/* Category + Pages + Year + Rating */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Category</label>
@@ -149,7 +145,6 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
             </div>
           </div>
 
-          {/* Cover image */}
           <div>
             <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Cover Image</label>
             <div className="flex items-start gap-3">
@@ -177,7 +172,6 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
             </div>
           </div>
 
-          {/* PDF — toggle between URL and file upload */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs text-[var(--text-secondary)] font-medium">Book File (PDF) *</label>
@@ -223,7 +217,6 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
               </div>
             )}
 
-            {/* Upload progress */}
             {loading && progress > 0 && (
               <div className="mt-2">
                 <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1"><span>Uploading…</span><span>{progress}%</span></div>
@@ -235,7 +228,6 @@ const BookModal = ({ open, onClose, onSave, onSaveWithFile, initial, loading }) 
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-3 px-7 py-5 border-t border-[var(--border-subtle)]">
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={loading || !canSave}
@@ -281,7 +273,7 @@ const DeleteModal = ({ open, book, onClose, onConfirm, loading }) => {
 // ─── Upload Preview Modal ──────────────────────────────────────────────────────
 const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading }) => {
   if (!open || !book) return null;
-  const fileUrl = book.fileUrl?.startsWith('http') ? book.fileUrl : `${API_URL}${book.fileUrl}`;
+  const fileUrl  = book.fileUrl?.startsWith('http') ? book.fileUrl : `${API_URL}${book.fileUrl}`;
   const coverUrl = book.coverImage
     ? (book.coverImage.startsWith('http') ? book.coverImage : `${API_URL}${book.coverImage}`)
     : null;
@@ -297,14 +289,12 @@ const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading 
 
         <div className="px-7 py-6">
           <div className="flex gap-6 mb-6">
-            {/* Cover */}
             <div className="w-28 shrink-0">
               {coverUrl
                 ? <img src={coverUrl} alt={book.title} className="w-28 aspect-[2/3] object-cover rounded-xl border border-[var(--border-default)]" />
                 : <div className="w-28 aspect-[2/3] rounded-xl bg-secondary border border-[var(--border-default)] flex items-center justify-center"><BookOpen size={32} className="text-neutral-700" /></div>
               }
             </div>
-            {/* Info */}
             <div className="flex-1 min-w-0">
               <h3 className="text-xl font-black text-[var(--text-primary)] mb-1">{book.title}</h3>
               <p className="text-[var(--text-secondary)] text-sm mb-3">by <span className="text-[var(--text-primary)]">{book.author}</span></p>
@@ -322,7 +312,6 @@ const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading 
             </div>
           </div>
 
-          {/* Description */}
           {book.description && (
             <div className="mb-5 p-4 bg-secondary rounded-xl border border-[var(--border-subtle)]">
               <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2 font-semibold">Description</p>
@@ -330,7 +319,6 @@ const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading 
             </div>
           )}
 
-          {/* PDF link */}
           <a href={fileUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 p-4 bg-secondary rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors mb-6 group">
             <div className="w-10 h-10 rounded-lg bg-[var(--bg-surface-elevated)] flex items-center justify-center">
@@ -343,7 +331,6 @@ const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading 
             <Eye size={16} className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors" />
           </a>
 
-          {/* Actions */}
           <div className="flex gap-3">
             <button onClick={onReject} disabled={loading}
               className="flex-1 py-3.5 rounded-xl bg-[var(--bg-surface-elevated)] hover:bg-[var(--bg-surface-elevated)] border border-[var(--border-strong)] text-[var(--text-secondary)] font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -361,7 +348,7 @@ const UploadPreviewModal = ({ open, book, onClose, onApprove, onReject, loading 
   );
 };
 
-// ─── Inline Add Book Form (used in Manage Books tab) ──────────────────────────
+// ─── Inline Add Book Form ──────────────────────────────────────────────────────
 const AddBookForm = ({ token, headers, onSuccess, toast }) => {
   const EMPTY = {
     title: '', author: '', description: '', category: 'Fiction',
@@ -404,24 +391,14 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
   const canSave = form.title.trim() && form.author.trim() &&
     (uploadMode === 'url' ? form.fileUrl.trim() : !!pdfFile);
 
+  // ✅ Fix 2: Removed the stray /api/auth/login fetch that was here before the try block.
+  //           It used undefined `email` and `pass` variables and ran outside try/catch,
+  //           causing a crash that left `saving` stuck as true and broke the form.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-     method: 'POST',
-     credentials: 'include',
-      headers: {
-    'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-    email,
-    password: pass
-     }),
-   });
     try {
       if (uploadMode === 'file') {
-        // Upload PDF via /api/uploads then auto-approve
         const fd = new FormData();
         fd.append('bookFile',    pdfFile);
         fd.append('title',       form.title.trim());
@@ -450,7 +427,6 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
         if (!uploadRes.success) throw new Error(uploadRes.message || 'Upload failed');
         await fetch(`${API_URL}/api/uploads/${uploadRes.book._id}/approve`, { method: 'PUT', headers });
       } else {
-        // Add via JSON
         const res  = await fetch(`${API_URL}/api/books`, {
           method: 'POST', headers,
           body: JSON.stringify(form),
@@ -469,7 +445,6 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
 
   return (
     <form onSubmit={handleSubmit} className="px-7 py-6 space-y-5">
-      {/* Title + Author */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Title *</label>
@@ -481,14 +456,12 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
         </div>
       </div>
 
-      {/* Description */}
       <div>
         <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Description</label>
         <textarea name="description" value={form.description} onChange={handle}
           placeholder="Brief description…" rows={3} className={`${inp} resize-none`} />
       </div>
 
-      {/* Category + Pages + Year + Rating */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="col-span-2 sm:col-span-1">
           <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Category</label>
@@ -510,7 +483,6 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
         </div>
       </div>
 
-      {/* Cover image */}
       <div>
         <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Cover Image</label>
         <div className="flex items-start gap-3">
@@ -538,7 +510,6 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
         </div>
       </div>
 
-      {/* PDF — URL or file upload toggle */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-xs text-[var(--text-secondary)] font-medium">Book File (PDF) *</label>
@@ -593,7 +564,6 @@ const AddBookForm = ({ token, headers, onSuccess, toast }) => {
         )}
       </div>
 
-      {/* Submit */}
       <div className="flex items-center gap-3 pt-2">
         <button type="submit" disabled={saving || !canSave}
           className="flex items-center gap-2 px-7 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--text-primary)] rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/20">
@@ -631,14 +601,13 @@ const Admin = () => {
   const token   = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-  // ── Toast helper ──────────────────────────────────────────────────────────
+  // ✅ Fix 1 (cont): useCallback now works because it is properly imported above
   const toast = useCallback((message, type = 'success') => {
     const id = Date.now();
     setToasts((p) => [...p, { id, message, type }]);
     setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 3500);
   }, []);
 
-  // ── Fetchers ──────────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/books/stats/overview`, { headers });
@@ -674,8 +643,6 @@ const Admin = () => {
     if (activeTab === 'uploads')   fetchPending();
   }, [activeTab]);
 
-  // ── CRUD handlers ─────────────────────────────────────────────────────────
-  // Save via JSON (URL mode or edit)
   const handleSave = async (form) => {
     setSaving(true);
     try {
@@ -691,7 +658,6 @@ const Admin = () => {
     finally { setSaving(false); }
   };
 
-  // Save via FormData (file upload mode — admin uploads then auto-approves)
   const handleSaveWithFile = async (form, pdfFile, coverFile, setProgress) => {
     setSaving(true);
     try {
@@ -721,7 +687,6 @@ const Admin = () => {
       });
 
       if (!uploadRes.success) throw new Error(uploadRes.message || 'Upload failed');
-      // Auto-approve since admin uploaded it
       await fetch(`${API_URL}/api/uploads/${uploadRes.book._id}/approve`, { method: 'PUT', headers });
       toast('Book uploaded and published!');
       setModalOpen(false); setEditBook(null);
@@ -729,6 +694,7 @@ const Admin = () => {
     } catch (err) { toast(err.message, 'error'); }
     finally { setSaving(false); }
   };
+
   const handleDelete = async () => {
     if (!deleteModal.book) return;
     setDeleting(true);
@@ -768,7 +734,6 @@ const Admin = () => {
   const openEdit = (book) => { setEditBook(book); setModalOpen(true); };
   const openDel  = (book) => setDeleteModal({ open: true, book });
 
-  // ── Filtered books ────────────────────────────────────────────────────────
   const filtered = (list) => {
     if (!search.trim()) return list;
     const q = search.toLowerCase();
@@ -779,7 +744,6 @@ const Admin = () => {
     );
   };
 
-  // ── Books table (reused for both admin books and community books) ──────────
   const BooksTable = ({ list, showUploader = false }) => (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
@@ -795,7 +759,6 @@ const Admin = () => {
         <tbody className="divide-y divide-white/[0.04]">
           {filtered(list).map((book) => (
             <tr key={book._id} className="hover:bg-white/[0.02] transition-colors group">
-              {/* Book info */}
               <td className="px-5 py-4">
                 <div className="flex items-center gap-3">
                   {book.coverImage
@@ -811,19 +774,16 @@ const Admin = () => {
                   </div>
                 </div>
               </td>
-              {/* Category */}
               <td className="px-4 py-4">
                 <span className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface-elevated)] text-[var(--text-secondary)] text-xs font-semibold border border-[var(--border-default)]">
                   {book.category}
                 </span>
               </td>
-              {/* Uploader */}
               {showUploader && (
                 <td className="px-4 py-4 text-[var(--text-secondary)] text-xs">
                   {book.uploadedBy?.username || book.uploadedBy?.displayName || '—'}
                 </td>
               )}
-              {/* Status */}
               <td className="px-4 py-4">
                 <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
                   book.isActive
@@ -833,7 +793,6 @@ const Admin = () => {
                   {book.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              {/* Actions */}
               <td className="px-4 py-4">
                 <div className="flex items-center justify-end gap-1">
                   <button onClick={() => openEdit(book)}
@@ -894,7 +853,6 @@ const Admin = () => {
       />
 
       <div className="container mx-auto px-4 lg:px-8 py-10">
-        {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tight">Admin Panel</h1>
@@ -927,10 +885,10 @@ const Admin = () => {
             {activeTab === 'dashboard' && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-                  <StatCard icon={BookOpen}    label="Total Books"     value={stats.totalBooks}               iconBg="bg-[var(--bg-surface-elevated)]"    iconColor="text-[var(--text-secondary)]" />
-                  <StatCard icon={CheckCircle} label="Active Books"    value={stats.activeBooks}              iconBg="bg-[var(--bg-surface-elevated)]"  iconColor="text-[var(--text-secondary)]" />
-                  <StatCard icon={Upload}      label="Pending Uploads" value={stats.pendingUploads}           iconBg="bg-[var(--bg-surface-elevated)]" iconColor="text-[var(--text-secondary)]" />
-                  <StatCard icon={TrendingUp}  label="Total Reads"     value={stats.totalReads?.toLocaleString()} iconBg="bg-[var(--bg-surface-elevated)]"   iconColor="text-[var(--text-secondary)]" />
+                  <StatCard icon={BookOpen}    label="Total Books"     value={stats.totalBooks}                    iconBg="bg-[var(--bg-surface-elevated)]" iconColor="text-[var(--text-secondary)]" />
+                  <StatCard icon={CheckCircle} label="Active Books"    value={stats.activeBooks}                   iconBg="bg-[var(--bg-surface-elevated)]" iconColor="text-[var(--text-secondary)]" />
+                  <StatCard icon={Upload}      label="Pending Uploads" value={stats.pendingUploads}                iconBg="bg-[var(--bg-surface-elevated)]" iconColor="text-[var(--text-secondary)]" />
+                  <StatCard icon={TrendingUp}  label="Total Reads"     value={stats.totalReads?.toLocaleString()}  iconBg="bg-[var(--bg-surface-elevated)]" iconColor="text-[var(--text-secondary)]" />
                 </div>
 
                 <div className="bg-surface rounded-xl border border-[var(--border-subtle)] p-7">
@@ -953,7 +911,7 @@ const Admin = () => {
               </>
             )}
 
-            {/* ── MANAGE BOOKS — Add New Book only ─────────────────────── */}
+            {/* ── MANAGE BOOKS ──────────────────────────────────────────── */}
             {activeTab === 'books' && (
               <div className="max-w-2xl">
                 <div className="bg-surface rounded-xl border border-[var(--border-subtle)] overflow-hidden">
@@ -1001,7 +959,6 @@ const Admin = () => {
                         : null;
                       return (
                         <div key={book._id} className="bg-surface border border-[var(--border-subtle)] rounded-xl overflow-hidden hover:border-[var(--border-default)] transition-all group">
-                          {/* Cover strip */}
                           <div className="h-36 bg-secondary relative overflow-hidden">
                             {cover
                               ? <img src={cover} alt={book.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -1013,7 +970,6 @@ const Admin = () => {
                             </span>
                           </div>
 
-                          {/* Info */}
                           <div className="p-5">
                             <h3 className="text-[var(--text-primary)] font-bold text-sm mb-0.5 truncate">{book.title}</h3>
                             <p className="text-[var(--text-muted)] text-xs mb-3">by {book.author}</p>
@@ -1025,7 +981,6 @@ const Admin = () => {
                               <p className="text-[var(--text-muted)] text-xs line-clamp-2 mb-4">{book.description}</p>
                             )}
 
-                            {/* Action buttons */}
                             <div className="flex gap-2">
                               <button onClick={() => setPreviewModal({ open: true, book })}
                                 className="flex-1 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] text-neutral-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
@@ -1076,4 +1031,3 @@ const Admin = () => {
 };
 
 export default Admin;
-
