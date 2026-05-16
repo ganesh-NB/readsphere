@@ -130,7 +130,7 @@ router.get('/google', (req, res) => {
 // @access  Public
 router.get('/google/callback',
   passport.authenticate('google', { 
-    failureRedirect: '/login?error=google_auth_failed',
+  failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=google_auth_failed`,
     session: false
   }),
   (req, res) => {

@@ -274,7 +274,6 @@ const Login = () => {
             <div className="mb-5 px-4 py-3 rounded-lg text-xs space-y-0.5"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
               <p className="font-semibold text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-                Admin credentials
               </p>
             </div>
           )}
