@@ -276,8 +276,6 @@ const Login = () => {
               <p className="font-semibold text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
                 Admin credentials
               </p>
-              <p style={{ color: 'var(--text-secondary)' }}>Email: {ADMIN_EMAIL}</p>
-              <p style={{ color: 'var(--text-secondary)' }}>Password: {ADMIN_PASSWORD}</p>
             </div>
           )}
 
