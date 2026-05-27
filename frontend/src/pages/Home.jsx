@@ -135,6 +135,11 @@ const Home = () => {
     }
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+    setBooks([]);
+  };
+
   const scrollTrending = (direction) => {
     if (trendingScrollRef.current) {
       trendingScrollRef.current.scrollBy({ left: direction === 'left' ? -320 : 320, behavior: 'smooth' });
@@ -220,6 +225,59 @@ const Home = () => {
         <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
           style={{ background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
       </section>
+
+      {/* ===== SEARCH RESULTS ===== */}
+      {(searchQuery && (isLoading || books.length >= 0)) && (
+        <section className="max-w-7xl mx-auto px-4 lg:px-8 py-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="section-title text-2xl md:text-3xl">
+                {isLoading ? 'Searching…' : `Results for "${searchQuery}"`}
+              </h2>
+              {!isLoading && (
+                <p className="section-subtitle text-sm mt-1">
+                  {books.length > 0 ? `${books.length} book${books.length !== 1 ? 's' : ''} found` : 'No books found'}
+                </p>
+              )}
+            </div>
+            <button onClick={clearSearch} className="btn btn-outline !py-1.5 !px-4 !text-xs flex items-center gap-1.5">
+              <Search size={12} /> Clear search
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="aspect-[2/3] skeleton" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3 w-14 skeleton rounded" />
+                    <div className="h-3 w-full skeleton rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : books.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {books.map(book => <BookCard key={book.id || book._id} book={book} />)}
+            </div>
+          ) : (
+            <div className="py-20 text-center rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+              <BookOpen size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                No books found for "{searchQuery}"
+              </h3>
+              <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+                Try a different title, author name, or keyword.
+              </p>
+              <button onClick={clearSearch} className="btn btn-primary">Browse All Books</button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Only show sections below when NOT searching */}
+      {!searchQuery && (<>
 
       {/* ===== TRENDING NOW ===== */}
       <section className="max-w-7xl mx-auto px-4 lg:px-8 py-16">
@@ -448,6 +506,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      </>) /* end !searchQuery */}
     </div>
   );
 };

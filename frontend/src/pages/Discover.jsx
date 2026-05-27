@@ -55,13 +55,20 @@ const Discover = () => {
   useEffect(() => { loadBooks(); }, []);
 
   const performSearch = useCallback(async (query) => {
-    setIsLoading(true);
     if (!query.trim()) { await loadBooks(selectedCategory, true); return; }
+    setIsLoading(true);
     try {
       const results = await searchBooks(query, 24);
-      setBooks(results); setFilteredBooks(results); setHasMore(false);
-    } catch { setBooks([]); setFilteredBooks([]); }
-    finally { setIsLoading(false); }
+      // results may be empty — that's fine, the empty state shows "not found"
+      setBooks(results);
+      setFilteredBooks(results);
+      setHasMore(false);
+    } catch {
+      setBooks([]);
+      setFilteredBooks([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [selectedCategory]);
 
   useEffect(() => {
@@ -203,8 +210,12 @@ const Discover = () => {
                 : (
                   <div className="col-span-full py-24 text-center">
                     <BookOpen size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No books found</h3>
-                    <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Try adjusting your search or filters.</p>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                      {searchQuery ? `No books found for "${searchQuery}"` : 'No books found'}
+                    </h3>
+                    <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                      {searchQuery ? 'Try a different search term or browse by category.' : 'Try adjusting your filters.'}
+                    </p>
                     <button onClick={clearFilters} className="btn btn-outline">Clear Filters</button>
                   </div>
                 )
@@ -249,7 +260,9 @@ const Discover = () => {
                 : (
                   <div className="py-24 text-center">
                     <BookOpen size={48} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No books found</h3>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                      {searchQuery ? `No books found for "${searchQuery}"` : 'No books found'}
+                    </h3>
                     <button onClick={clearFilters} className="btn btn-outline mt-4">Clear Filters</button>
                   </div>
                 )
