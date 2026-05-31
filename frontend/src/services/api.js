@@ -126,25 +126,26 @@ const guessCategory = (subjects = []) => {
   return 'Classic';
 };
 
+// Only format books that have a Gutenberg ID — guarantees free full text
 const formatOpenLibraryBook = (doc) => {
+  const gutenbergId = doc.id_project_gutenberg?.[0];
+  // Skip books without a Gutenberg ID — they may be copyrighted
+  if (!gutenbergId) return null;
+
   const coverId = doc.cover_i || doc.cover_edition_key;
   const coverImage = coverId
     ? `${COVER_BASE}/${coverId}-L.jpg`
     : 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600';
 
-  const workId = doc.key?.replace('/works/', '') || doc.edition_key?.[0] || String(doc.seed?.[0] || Math.random());
-  const gutenbergId = doc.id_project_gutenberg?.[0];
+  const workId = doc.key?.replace('/works/', '') || String(gutenbergId);
 
-  // Build a readable URL — prefer Gutenberg if available
-  let fileUrl  = `https://openlibrary.org${doc.key || '/works/' + workId}`;
-  let fileType = 'html';
-  if (gutenbergId) {
-    fileUrl  = `https://www.gutenberg.org/ebooks/${gutenbergId}`;
-    fileType = 'html';
-  }
+  // Use Gutenberg HTML reader — always free, always works
+  const fileUrl  = `https://www.gutenberg.org/ebooks/${gutenbergId}`;
+  const fileType = 'html';
 
   return {
     id:          workId,
+    gutenbergId: String(gutenbergId),
     title:       doc.title || 'Unknown Title',
     author:      doc.author_name?.join(', ') || 'Unknown Author',
     category:    guessCategory(doc.subject || []),
@@ -158,7 +159,8 @@ const formatOpenLibraryBook = (doc) => {
     coverImage,
     fileUrl,
     fileType,
-    aiSummary:   `"${doc.title}" by ${doc.author_name?.[0] || 'the author'}. Published ${doc.first_publish_year || 'in the classic era'}.`,
+    isFree:      true,
+    aiSummary:   `"${doc.title}" by ${doc.author_name?.[0] || 'the author'}. Free public domain book via Project Gutenberg.`,
   };
 };
 
@@ -174,7 +176,7 @@ const fetchWithTimeout = (url, ms = 8000) => {
 export const searchBooks = async (query = 'fiction', maxResults = 24) => {
   if (!query.trim()) return MOCK_BOOKS.slice(0, maxResults);
 
-  // 1. Search our backend first (uploaded books)
+  // 1. Search our backend first (uploaded books — always free since user uploaded them)
   let backendResults = [];
   try {
     const res = await fetchWithTimeout(
@@ -186,16 +188,20 @@ export const searchBooks = async (query = 'fiction', maxResults = 24) => {
     }
   } catch { /* backend offline */ }
 
-  // 2. Search Open Library
+  // 2. Search Open Library — request extra results since we filter to Gutenberg-only
   let olResults = [];
   try {
     const res = await fetchWithTimeout(
-      `${OPEN_LIBRARY_SEARCH}?q=${encodeURIComponent(query)}&limit=${maxResults}&fields=key,title,author_name,cover_i,cover_edition_key,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg,seed,edition_key`,
+      `${OPEN_LIBRARY_SEARCH}?q=${encodeURIComponent(query)}&limit=100&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg`,
       8000
     );
     if (res.ok) {
       const data = await res.json();
-      olResults = (data.docs || []).slice(0, maxResults).map(formatOpenLibraryBook);
+      // Only keep books with a Gutenberg ID (free full text guaranteed)
+      olResults = (data.docs || [])
+        .map(formatOpenLibraryBook)
+        .filter(Boolean)           // remove nulls (no Gutenberg ID)
+        .slice(0, maxResults);
     }
   } catch { /* API unreachable */ }
 
@@ -204,13 +210,11 @@ export const searchBooks = async (query = 'fiction', maxResults = 24) => {
   const mockMatches = MOCK_BOOKS.filter(b =>
     b.title.toLowerCase().includes(q) ||
     b.author.toLowerCase().includes(q) ||
-    b.category.toLowerCase().includes(q) ||
-    b.description.toLowerCase().includes(q)
+    b.category.toLowerCase().includes(q)
   );
 
-  // Merge: backend first, then OL, then mock matches
+  // Merge: backend first, then OL Gutenberg books, then mock matches
   const all = [...backendResults, ...olResults, ...mockMatches];
-  // Deduplicate by title+author
   const seen = new Set();
   return all.filter(b => {
     const key = `${b.title}|${b.author}`.toLowerCase();
@@ -269,17 +273,15 @@ export const getTrendingBooks = async (maxResults = 12) => {
   const community = await getCommunityBooks(maxResults);
   if (community.length >= 4) return community.slice(0, maxResults);
 
-  // Try Open Library trending (trending subjects)
   try {
     const res = await fetchWithTimeout(
-      `${OPEN_LIBRARY_SEARCH}?q=fiction&sort=rating&limit=${maxResults}&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg,seed`,
+      `${OPEN_LIBRARY_SEARCH}?q=fiction&sort=rating&limit=100&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg`,
       8000
     );
     if (res.ok) {
       const data = await res.json();
-      if (data.docs?.length > 0) {
-        return data.docs.slice(0, maxResults).map(formatOpenLibraryBook);
-      }
+      const books = (data.docs || []).map(formatOpenLibraryBook).filter(Boolean).slice(0, maxResults);
+      if (books.length > 0) return books;
     }
   } catch { /* fallback */ }
 
@@ -290,12 +292,13 @@ export const getTrendingBooks = async (maxResults = 12) => {
 export const getNewReleases = async (maxResults = 8) => {
   try {
     const res = await fetchWithTimeout(
-      `${OPEN_LIBRARY_SEARCH}?q=novel&sort=new&limit=${maxResults}&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg,seed`,
+      `${OPEN_LIBRARY_SEARCH}?q=classic+novel&sort=new&limit=100&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg`,
       8000
     );
     if (res.ok) {
       const data = await res.json();
-      if (data.docs?.length > 0) return data.docs.slice(0, maxResults).map(formatOpenLibraryBook);
+      const books = (data.docs || []).map(formatOpenLibraryBook).filter(Boolean).slice(0, maxResults);
+      if (books.length > 0) return books;
     }
   } catch { /* fallback */ }
   return MOCK_BOOKS.slice(0, maxResults);
@@ -305,21 +308,26 @@ export const getNewReleases = async (maxResults = 8) => {
 export const getRecommendedBooks = async (maxResults = 6) => {
   try {
     const res = await fetchWithTimeout(
-      `${OPEN_LIBRARY_SEARCH}?q=classic+literature&sort=rating&limit=${maxResults}&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg,seed`,
+      `${OPEN_LIBRARY_SEARCH}?q=classic+literature&sort=rating&limit=100&fields=key,title,author_name,cover_i,first_publish_year,subject,number_of_pages_median,ratings_average,first_sentence,id_project_gutenberg`,
       8000
     );
     if (res.ok) {
       const data = await res.json();
-      if (data.docs?.length > 0) return data.docs.slice(0, maxResults).map(formatOpenLibraryBook);
+      const books = (data.docs || []).map(formatOpenLibraryBook).filter(Boolean).slice(0, maxResults);
+      if (books.length > 0) return books;
     }
   } catch { /* fallback */ }
   return MOCK_BOOKS.slice(0, maxResults);
 };
 
 // ── Preview availability ──────────────────────────────────────────────────────
+// A book is readable if it has a fileUrl (all our books do — Gutenberg or uploaded)
 export const checkPreviewAvailability = async (id) => {
+  // Mock books always have fileUrl
   const mock = MOCK_BOOKS.find(b => b.id === id);
-  return !!(mock?.fileUrl);
+  if (mock) return true;
+  // For any other book, assume readable (we only show free Gutenberg books)
+  return true;
 };
 
 export const getBooksWithPreview = async (maxResults = 10) => getTrendingBooks(maxResults);
