@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, BookOpen, Bookmark, Heart, ArrowLeft, Clock, Share2, AlertCircle, ExternalLink, Check } from 'lucide-react';
 import { getBookDetails, checkPreviewAvailability } from '../services/api';
-import { addFavorite, removeFavorite, isFavorited, saveBookmark, removeBookmark, getBookmark } from '../services/userLibrary';
+import { addFavorite, removeFavorite, isFavorited, saveBookmark, removeBookmark, isBookmarked, getBookmark } from '../services/userLibrary';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const isAuthed = () => {
+  try { return !!(localStorage.getItem('token') && localStorage.getItem('user')); }
+  catch { return false; }
+};
 
 const resolveCover = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600';
@@ -14,6 +19,8 @@ const resolveCover = (url) => {
 
 const BookDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const authed = isAuthed();
   const [book,            setBook]            = useState(null);
   const [isLoading,       setIsLoading]       = useState(true);
   const [error,           setError]           = useState(null);
@@ -30,13 +37,10 @@ const BookDetails = () => {
         const data = await getBookDetails(id);
         if (data) {
           setBook(data);
-          // Load saved state
-          const [fav, bm] = await Promise.all([
-            isFavorited(data._id || data.id),
-            Promise.resolve(getBookmark(data._id || data.id)),
-          ]);
-          setIsFavorite(fav);
-          setIsBookmarked(bm !== null);
+          // Both are now synchronous localStorage reads — instant, no network
+          const bookId = data._id || data.id;
+          setIsFavorite(isFavorited(bookId));
+          setIsBookmarked(isBookmarked(bookId));
         } else setError('Book not found.');
       } catch { setError('Failed to load book details.'); }
       finally { setIsLoading(false); }
@@ -165,20 +169,36 @@ const BookDetails = () => {
 
               {/* Actions */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                {/* Read button — guests get redirected to login */}
                 {fileUrl ? (
-                  <Link to={`/read/${book._id || book.id}`} state={{ fileUrl, book }}
-                    className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
-                    <BookOpen size={16} /> Read Now
-                  </Link>
+                  authed ? (
+                    <Link to={`/read/${book._id || book.id}`} state={{ fileUrl, book }}
+                      className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                      <BookOpen size={16} /> Read Now
+                    </Link>
+                  ) : (
+                    <button onClick={() => navigate('/login', { state: { from: `/read/${book._id || book.id}`, message: 'Sign in to start reading' } })}
+                      className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                      <BookOpen size={16} /> Sign In to Read
+                    </button>
+                  )
                 ) : checkingPreview ? (
                   <button disabled className="btn btn-primary !px-6 !py-2.5 opacity-60 cursor-wait flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-fg)', borderTopColor: 'transparent' }} />
                     Checking…
                   </button>
                 ) : hasPreview ? (
-                  <Link to={`/read/${book._id || book.id}`} state={{ book }} className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
-                    <BookOpen size={16} /> Read Now
-                  </Link>
+                  authed ? (
+                    <Link to={`/read/${book._id || book.id}`} state={{ book }}
+                      className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                      <BookOpen size={16} /> Read Now
+                    </Link>
+                  ) : (
+                    <button onClick={() => navigate('/login', { state: { from: `/read/${book._id || book.id}`, message: 'Sign in to start reading' } })}
+                      className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
+                      <BookOpen size={16} /> Sign In to Read
+                    </button>
+                  )
                 ) : (
                   <a href={`https://www.gutenberg.org/ebooks/${id}`} target="_blank" rel="noopener noreferrer"
                     className="btn btn-primary !px-6 !py-2.5 flex items-center gap-2">
@@ -186,7 +206,9 @@ const BookDetails = () => {
                   </a>
                 )}
 
-                <div className="flex items-center gap-2">
+                {/* Favorite / Bookmark / Share — only for logged-in users */}
+                {authed && (
+                  <div className="flex items-center gap-2">
                   <button onClick={toggleFavorite} aria-label="Favorite"
                     className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150"
                     style={{
@@ -211,6 +233,7 @@ const BookDetails = () => {
                     <Share2 size={16} />
                   </button>
                 </div>
+                )} {/* end authed */}
 
                 {/* Action feedback */}
                 {actionMsg && (

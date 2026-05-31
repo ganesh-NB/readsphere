@@ -58,6 +58,7 @@ const App = () => (
         <Route element={<PublicLayout />}>
           <Route path="/"         element={<Home />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/book/:id" element={<BookDetails />} />
         </Route>
 
         {/* ── Auth pages ────────────────────────────────────────────────── */}
@@ -69,7 +70,6 @@ const App = () => (
 
         {/* ── Protected (login required) ────────────────────────────────── */}
         <Route element={<ProtectedLayout />}>
-          <Route path="/book/:id" element={<BookDetails />} />
           <Route path="/read/:id" element={<Reader />} />
           <Route path="/profile"  element={<Profile />} />
           <Route path="/upload"   element={<UploadBook />} />
@@ -83,5 +83,4 @@ const App = () => (
     </div>
   </Router>
 );
-console.log('API URL:', import.meta.env.VITE_API_URL);
 export default App;

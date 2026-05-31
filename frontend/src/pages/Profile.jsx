@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Heart, Bookmark, Clock, Upload, LogOut,
-  AlertCircle, X, CheckCircle, FileText, Trash2, BookOpen, Eye
-} from 'lucide-react';
-import { getFavorites, getBookmarks, getReadingHistory,
-         removeFavorite as libRemoveFavorite,
-         removeBookmark as libRemoveBookmark } from '../services/userLibrary';
+import { Heart, Bookmark, Clock, Upload, LogOut, AlertCircle, X, CheckCircle, BookOpen } from 'lucide-react';
+import { getFavorites, getBookmarks, getReadingHistory, removeFavorite, removeBookmark } from '../services/userLibrary';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -15,14 +10,12 @@ const S = {
   inner: { background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' },
 };
 
-// Resolve cover image — handles relative backend paths
 const cover = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=300';
   if (url.startsWith('http')) return url;
   return `${API_URL}${url}`;
 };
 
-// Status badge colours
 const statusStyle = (s) => {
   if (s === 'approved') return { background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' };
   if (s === 'rejected') return { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' };
@@ -43,28 +36,22 @@ const Profile = () => {
   const token   = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-  useEffect(() => { fetchAll(); }, []);
+  // Load everything on mount
+  useEffect(() => {
+    // 1. Load library data instantly from localStorage (synchronous)
+    setFavorites(getFavorites());
+    setBookmarks(getBookmarks());
+    setReadingHistory(getReadingHistory());
 
-  const fetchAll = async () => {
-    setIsLoading(true);
-    try {
-      // Load user info from backend
-      const res = await fetch(`${API_URL}/api/users/profile`, { headers });
-      if (res.ok) setUser(await res.json());
-
-      // Load library data from unified service (localStorage + backend)
-      const [favs, bms, hist] = await Promise.all([
-        getFavorites(),
-        getBookmarks(),
-        getReadingHistory(),
-      ]);
+    // 2. Load user profile from backend
+    fetch(`${API_URL}/api/users/profile`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setUser(data); })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
       setFavorites(favs);
       setBookmarks(bms);
-      setReadingHistory(hist);
-    } catch { setError('Failed to load profile'); }
-    finally { setIsLoading(false); }
-  };
-
   const fetchMyUploads = async () => {
     try {
       const res = await fetch(`${API_URL}/api/uploads/my-uploads`, { headers });
@@ -75,34 +62,17 @@ const Profile = () => {
   useEffect(() => { if (activeTab === 'uploads') fetchMyUploads(); }, [activeTab]);
 
   const handleRemoveFavorite = async (bookId) => {
-    try {
-      await libRemoveFavorite(bookId);
-      setFavorites(f => f.filter(b => (b._id || b.id) !== String(bookId)));
-      setSuccess('Removed from favorites');
-    } catch (e) { setError(e.message); }
+    await removeFavorite(bookId);
+    setFavorites(getFavorites());
+    setSuccess('Removed from favorites');
+    setTimeout(() => setSuccess(''), 2000);
   };
 
   const handleRemoveBookmark = async (bookId) => {
-    try {
-      await libRemoveBookmark(bookId);
-      setBookmarks(b => b.filter(item => (item.book?._id || item.book?.id) !== String(bookId)));
-      setSuccess('Bookmark removed');
-    } catch (e) { setError(e.message); }
-  };
-
-  // Delete an uploaded book (only pending/rejected can be deleted by the user)
-  const handleDeleteUpload = async (bookId) => {
-    if (!window.confirm('Delete this upload? This cannot be undone.')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/books/${bookId}`, { method: 'DELETE', headers });
-      if (res.ok) {
-        setMyUploads(u => u.filter(b => b._id !== bookId));
-        setSuccess('Upload deleted.');
-      } else {
-        const d = await res.json();
-        setError(d.message || 'Failed to delete upload');
-      }
-    } catch { setError('Network error'); }
+    await removeBookmark(bookId);
+    setBookmarks(getBookmarks());
+    setSuccess('Bookmark removed');
+    setTimeout(() => setSuccess(''), 2000);
   };
 
   const handleLogout = () => {

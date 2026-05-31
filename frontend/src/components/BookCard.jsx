@@ -17,23 +17,29 @@ const resolveCover = (url) => {
 
 const BookCard = ({ book }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
-  const navigate = useNavigate();
-  const authed   = isAuthed();
-  const bookId   = book._id || book.id;
+  const navigate  = useNavigate();
+  const authed    = isAuthed();
+  const bookId    = book._id || book.id;
 
-  const handleReadClick = (e) => {
-    if (!authed) { e.preventDefault(); navigate('/login', { state: { from: `/read/${bookId}`, message: 'Sign in to start reading' } }); }
-  };
-  const handleViewClick = (e) => {
-    if (!authed) { e.preventDefault(); navigate('/login', { state: { from: `/book/${bookId}`, message: 'Sign in to view book details' } }); }
+  // Always go to book details page first — never skip straight to reader from card
+  const detailPath = `/book/${bookId}`;
+  const loginState = { from: detailPath, message: 'Sign in to view book details' };
+
+  const handleCardClick = () => {
+    if (!authed) {
+      navigate('/login', { state: loginState });
+    } else {
+      navigate(detailPath);
+    }
   };
 
   return (
     <div
-      className="group relative rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full hover:-translate-y-1 cursor-pointer"
+      onClick={handleCardClick}
+      className="group relative rounded-xl overflow-hidden transition-all duration-200 flex flex-col h-full cursor-pointer hover:-translate-y-1"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.boxShadow = '0 8px 32px var(--accent-glow)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
     >
       {/* Cover */}
       <div className="relative aspect-[2/3] overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
@@ -43,14 +49,17 @@ const BookCard = ({ book }) => {
           alt={book.title}
           className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImgLoaded(true)}
-          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop'; setImgLoaded(true); }}
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop';
+            setImgLoaded(true);
+          }}
         />
 
-        {/* Badges */}
+        {/* Rating badge */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-start z-10">
           {book.rating ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md"
-              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', color: 'var(--accent-light)', border: '1px solid var(--accent-border)' }}>
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
               <Star size={10} className="fill-current" />
               {typeof book.rating === 'number' ? book.rating.toFixed(1) : book.rating}
             </span>
@@ -63,26 +72,18 @@ const BookCard = ({ book }) => {
           )}
         </div>
 
-        {/* Hover overlay */}
-        <div className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-all duration-300"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)' }}>
-          {book.fileUrl ? (
-            <Link
-              to={authed ? `/read/${bookId}` : '/login'}
-              state={authed ? { fileUrl: book.fileUrl } : { from: `/read/${bookId}`, message: 'Sign in to start reading' }}
-              onClick={handleReadClick}
-              className="btn btn-primary !px-4 !py-2 !text-xs !rounded-lg translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-              {authed ? <><BookOpen size={12} /> Read Now</> : <><Lock size={11} /> Sign In</>}
-            </Link>
-          ) : (
-            <Link
-              to={authed ? `/book/${bookId}` : '/login'}
-              state={!authed ? { from: `/book/${bookId}`, message: 'Sign in to view details' } : undefined}
-              onClick={handleViewClick}
-              className="btn btn-primary !px-4 !py-2 !text-xs !rounded-lg translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-              {authed ? <><BookOpen size={12} /> View</> : <><Lock size={11} /> Sign In</>}
-            </Link>
-          )}
+        {/* Hover overlay — shows "View Details" */}
+        <div className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-all duration-200"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)' }}>
+          <span
+            onClick={(e) => e.stopPropagation()} // prevent double-fire
+            className="pointer-events-none"
+          >
+            <span className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white translate-y-2 group-hover:translate-y-0 transition-transform duration-200"
+              style={{ background: 'var(--accent)' }}>
+              {authed ? <><BookOpen size={12} /> View Details</> : <><Lock size={11} /> Sign In</>}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -90,7 +91,7 @@ const BookCard = ({ book }) => {
       <div className="p-3.5 flex-grow flex flex-col justify-between gap-2">
         <div>
           <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md"
-            style={{ background: 'var(--accent-dim)', color: 'var(--accent-light)', border: '1px solid var(--accent-border)' }}>
+            style={{ background: 'var(--bg-surface-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
             {book.category?.name || book.category || 'General'}
           </span>
           <h3 className="mt-2 text-sm font-semibold line-clamp-2 leading-snug"
