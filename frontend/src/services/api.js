@@ -299,21 +299,26 @@ export const getBooksByCategory = async (category, maxResults = 24) => {
 
 // ── Trending books ────────────────────────────────────────────────────────────
 export const getTrendingBooks = async (maxResults = 12) => {
-  const community = await getCommunityBooks(maxResults);
-  if (community.length >= 4) return community.slice(0, maxResults);
-
-  try {
-    const res = await fetchWithTimeout(
-      `${OPEN_LIBRARY_SEARCH}?q=classic+fiction&public_scan_b=true&sort=rating&limit=100&fields=${OL_FIELDS}`,
-      8000
-    );
-    if (res.ok) {
+  // Fetch community books and OL books in parallel — don't let one block the other
+  const [community, olBooks] = await Promise.allSettled([
+    getCommunityBooks(maxResults),
+    (async () => {
+      const res = await fetchWithTimeout(
+        `${OPEN_LIBRARY_SEARCH}?q=classic+fiction&public_scan_b=true&sort=rating&limit=100&fields=${OL_FIELDS}`,
+        8000
+      );
+      if (!res.ok) return [];
       const data = await res.json();
-      const books = (data.docs || []).map(formatOpenLibraryBook).filter(Boolean).slice(0, maxResults);
-      if (books.length > 0) return books;
-    }
-  } catch { /* fallback */ }
+      return (data.docs || []).map(formatOpenLibraryBook).filter(Boolean).slice(0, maxResults);
+    })(),
+  ]);
 
+  const communityList = community.status === 'fulfilled' ? community.value : [];
+  const olList        = olBooks.status  === 'fulfilled' ? olBooks.value  : [];
+
+  // Merge: community books first, then OL, then mock fallback
+  const merged = [...communityList, ...olList];
+  if (merged.length > 0) return merged.slice(0, maxResults);
   return MOCK_BOOKS.slice(0, maxResults);
 };
 
@@ -356,7 +361,7 @@ export const getBooksWithPreview = async (maxResults = 10) => getTrendingBooks(m
 // ── Backend community books ───────────────────────────────────────────────────
 export const getCommunityBooks = async (limit = 12) => {
   try {
-    const res = await fetchWithTimeout(`${BACKEND_URL}/api/books?limit=${limit}&sortBy=newest`, 5000);
+    const res = await fetchWithTimeout(`${BACKEND_URL}/api/books?limit=${limit}&sortBy=newest`, 3000);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.books || []).map(normalizeBackendBook);
