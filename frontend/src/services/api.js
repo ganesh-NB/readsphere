@@ -185,7 +185,8 @@ const fetchWithTimeout = (url, ms = 8000) => {
 // ── Normalize backend book ────────────────────────────────────────────────────
 const normalizeBackendBook = (b) => ({
   ...b,
-  id:         b._id || b.id,
+  id:         String(b._id || b.id),
+  _id:        String(b._id || b.id),
   coverImage: b.coverImage
     ? (b.coverImage.startsWith('http') ? b.coverImage : `${BACKEND_URL}${b.coverImage}`)
     : '',
@@ -248,9 +249,25 @@ export const searchBooks = async (query = 'fiction', maxResults = 24) => {
 
 // ── Get book details ──────────────────────────────────────────────────────────
 export const getBookDetails = async (id) => {
+  // 1. Check mock books first
   const mock = MOCK_BOOKS.find(b => b.id === id);
   if (mock) return mock;
 
+  // 2. If it looks like a MongoDB ObjectId, fetch from backend
+  const isMongoId = /^[a-f\d]{24}$/i.test(String(id));
+  if (isMongoId) {
+    try {
+      const res = await fetchWithTimeout(`${BACKEND_URL}/api/books/${id}`, 5000);
+      if (res.ok) {
+        const b = await res.json();
+        return normalizeBackendBook(b);
+      }
+    } catch { /* fallback */ }
+    // Backend book not found — don't fall back to a random mock
+    return null;
+  }
+
+  // 3. Open Library works endpoint for OL IDs
   try {
     const res = await fetchWithTimeout(`https://openlibrary.org/works/${id}.json`, 6000);
     if (res.ok) {
@@ -288,7 +305,8 @@ export const getBookDetails = async (id) => {
     }
   } catch { /* fallback */ }
 
-  return MOCK_BOOKS[0];
+  // 4. Nothing found — return null so BookDetails shows an error instead of wrong book
+  return null;
 };
 
 // ── Category browsing ─────────────────────────────────────────────────────────
