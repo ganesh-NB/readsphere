@@ -20,7 +20,6 @@ const COVERS = [
 ];
 
 const FEATURES = [
-  'Access 50M+ free public domain books',
   'AI-powered summaries & insights',
   'Build your personal reading library',
   'Upload & share your own books',
