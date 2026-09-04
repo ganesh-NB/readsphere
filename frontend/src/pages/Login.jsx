@@ -11,10 +11,6 @@ const COVERS = [
   'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=300',
   'https://images.unsplash.com/photo-1495640388908-05fa85288e61?q=80&w=300',
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300',
-  'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=300',
-  'https://images.unsplash.com/photo-1476275466078-4007374efbbe?q=80&w=300',
-  'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300',
-  'https://images.unsplash.com/photo-1535905557558-afc4877a26fc?q=80&w=300',
 ];
 
 const FEATURES = [
@@ -32,7 +28,7 @@ const TABS = [
 /* ── Shared input wrapper ─────────────────────────────────────────────────── */
 const Field = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="block text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+    <label className="block text-xs font-medium font-sans text-ink uppercase tracking-wider">
       {label}
     </label>
     {children}
@@ -42,10 +38,10 @@ const Field = ({ label, children }) => (
 const InputIcon = ({ icon: Icon, children, right }) => (
   <div className="relative">
     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-      <Icon size={15} style={{ color: 'var(--text-muted)' }} />
+      <Icon size={15} className="text-rule-line" />
     </div>
     {React.cloneElement(children, {
-      className: `${children.props.className || ''} pl-9 ${right ? 'pr-10' : ''} focus-ring`,
+      className: `${children.props.className || ''} pl-9 ${right ? 'pr-10' : ''} input-field`,
     })}
     {right && (
       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -66,11 +62,11 @@ const getStrength = (pwd) => {
   return Math.min(score, 4);
 };
 const STRENGTH_META = [
-  { label: '',          color: 'transparent' },
-  { label: 'Weak',      color: '#ef4444' },
-  { label: 'Fair',      color: '#f59e0b' },
-  { label: 'Good',      color: '#3b82f6' },
-  { label: 'Strong',    color: '#22c55e' },
+  { label: '',       color: 'transparent' },
+  { label: 'Weak',   color: '#ef4444' },
+  { label: 'Fair',   color: '#f59e0b' },
+  { label: 'Good',   color: '#2E4034' },
+  { label: 'Strong', color: '#2E4034' },
 ];
 
 /* ── Main component ───────────────────────────────────────────────────────── */
@@ -79,14 +75,13 @@ const Login = () => {
   const location  = useLocation();
   const redirectMsg = location.state?.message || '';
 
-  const [tab,             setTab]             = useState('login');   // 'login' | 'register' | 'admin'
+  const [tab,             setTab]             = useState('login');
   const [showPass,        setShowPass]        = useState(false);
   const [showConfirm,     setShowConfirm]     = useState(false);
   const [loading,         setLoading]         = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
   const [form,            setForm]            = useState({ username: '', email: '', password: '', confirm: '' });
-  const [coverIndex,      setCoverIndex]      = useState(0);
 
   const tabRefs = useRef({});
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -98,17 +93,11 @@ const Login = () => {
   const isAdmin = tab === 'admin';
   const strength = getStrength(form.password);
 
-  /* Sliding tab indicator */
+  /* Sliding underline indicator */
   useEffect(() => {
     const el = tabRefs.current[tab];
     if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
   }, [tab]);
-
-  /* Subtle auto-rotating accent cover on the left panel */
-  useEffect(() => {
-    const id = setInterval(() => setCoverIndex(i => (i + 1) % COVERS.length), 3500);
-    return () => clearInterval(id);
-  }, []);
 
   /* ── Admin login ──────────────────────────────────────────────────────── */
   const handleAdmin = async (e) => {
@@ -187,85 +176,122 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen flex text-ink bg-paper-white font-sans">
 
-      {/* Local styles for focus rings, transitions & animations */}
+      {/* Embedded Styles for the new aesthetic constraint */}
       <style>{`
-        .focus-ring { transition: box-shadow 150ms ease, border-color 150ms ease; }
-        .focus-ring:focus {
-          outline: none;
-          border-color: var(--accent);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+          --c-paper-white: #FAF7F0;
+          --c-ink: #1C1A17;
+          --c-library-green: #2E4034;
+          --c-faded-gold: #B8935F;
+          --c-rule-line: #DAD4C8;
         }
-        .btn-lift { transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease; }
-        .btn-lift:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
-        .btn-lift:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+
+        .bg-paper-white { background-color: var(--c-paper-white); }
+        .text-ink { color: var(--c-ink); }
+        .text-rule-line { color: var(--c-rule-line); }
+        
+        .font-serif { font-family: 'Fraunces', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+        
+        .hairline-b { border-bottom: 1px solid var(--c-rule-line); }
+        .hairline-r { border-right: 1px solid var(--c-rule-line); }
+        .hairline-t { border-top: 1px solid var(--c-rule-line); }
+        .hairline-all { border: 1px solid var(--c-rule-line); }
+
+        .input-field {
+          width: 100%;
+          padding: 0.6rem 0.75rem;
+          background: transparent;
+          border: 1px solid var(--c-rule-line);
+          border-radius: 0;
+          color: var(--c-ink);
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+          transition: border-color 150ms ease;
+        }
+        .input-field:focus {
+          outline: none;
+          border-color: var(--c-faded-gold);
+          box-shadow: inset 0 0 0 1px var(--c-faded-gold);
+        }
+
+        .btn-primary {
+          background: var(--c-library-green);
+          color: var(--c-paper-white);
+          border: none;
+          border-radius: 0;
+          transition: background 150ms ease;
+        }
+        .btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--c-library-green) 85%, black); }
+        .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+        
+        .btn-outline {
+          background: transparent;
+          border: 1px solid var(--c-rule-line);
+          color: var(--c-ink);
+          border-radius: 0;
+          transition: border-color 150ms ease;
+        }
+        .btn-outline:hover { border-color: var(--c-ink); }
+
         .form-fade { animation: formFadeIn 220ms ease; }
         @keyframes formFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .cover-tile { transition: opacity 500ms ease, transform 500ms ease; }
-        .feature-item { animation: featureIn 400ms ease both; }
-        @keyframes featureIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
 
-      {/* ── LEFT: Visual panel ──────────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
-        style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}>
-
+      {/* ── LEFT: Visual panel (Book Jacket) ────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[50%] flex-col relative overflow-hidden hairline-r bg-paper-white">
+        
         {/* Logo */}
-        <div className="p-10 flex items-center gap-2.5 shrink-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--accent)' }}>
-            <BookOpen size={17} style={{ color: 'var(--accent-fg)' }} />
-          </div>
-          <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        <div className="p-12 flex items-center gap-3 shrink-0">
+          <BookOpen size={24} style={{ color: 'var(--c-library-green)' }} />
+          <span className="text-xl font-bold font-serif tracking-tight text-ink">
             ReadSphere
           </span>
         </div>
 
         {/* Hero copy */}
-        <div className="px-10 pb-8 flex-1 flex flex-col justify-center">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
-            Your reading companion
-          </p>
-          <h1 className="text-4xl xl:text-5xl font-black leading-tight mb-6 tracking-tight"
-            style={{ color: 'var(--text-primary)' }}>
+        <div className="px-12 pb-12 flex-1 flex flex-col justify-center">
+          <h1 className="text-5xl xl:text-6xl font-serif font-medium leading-[1.1] tracking-tight mb-8 text-ink">
             Read more.<br />Learn faster.<br />
-            <span className="text-gradient">Think deeper.</span>
+            <span className="italic">Think deeper.</span>
           </h1>
-          <ul className="space-y-3 mb-10">
+
+          <ul className="space-y-4 mb-14 border-l hairline-all border-y-0 border-r-0 pl-4 border-l-[var(--c-library-green)]">
             {FEATURES.map((f, i) => (
-              <li key={f} className="feature-item flex items-center gap-3 text-sm"
-                style={{ color: 'var(--text-secondary)', animationDelay: `${i * 90}ms` }}>
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'var(--bg-surface-elevated)' }}>
-                  <Check size={11} style={{ color: 'var(--text-primary)' }} />
-                </div>
+              <li key={f} className="flex items-center gap-3 text-sm font-sans text-ink">
+                <Check size={14} style={{ color: 'var(--c-faded-gold)' }} />
                 {f}
               </li>
             ))}
           </ul>
 
-          {/* Book cover grid — one tile gently pulses to keep the panel alive */}
-          <div className="grid grid-cols-3 gap-2.5 max-w-xs">
-            {COVERS.slice(0, 9).map((src, i) => (
-              <div key={i} className="cover-tile aspect-[2/3] rounded-lg overflow-hidden"
-                style={{
-                  border: '1px solid var(--border-subtle)',
-                  opacity: i === coverIndex ? 1 : 0.7 + (i % 3) * 0.1,
-                  transform: i === coverIndex ? 'scale(1.04)' : 'scale(1)',
-                }}>
-                <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+          {/* Book covers arranged as an offset "shelf" */}
+          <div className="flex items-end gap-4 h-48 w-full max-w-lg">
+            {COVERS.slice(0, 4).map((src, i) => (
+              <div key={i} 
+                   className="w-[22%] aspect-[2/3] shrink-0 hairline-all bg-white relative grayscale-[20%]"
+                   style={{
+                     transform: `translateY(${i % 2 === 0 ? '0' : '1.5rem'})`,
+                     zIndex: 4 - i,
+                   }}>
+                <img src={src} alt="" className="w-full h-full object-cover mix-blend-multiply opacity-90" loading="lazy" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom quote */}
-        <div className="px-10 py-8 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-          <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>
-            "A reader lives a thousand lives before he dies."
+        {/* Bottom pull-quote */}
+        <div className="px-12 py-10 hairline-t bg-paper-white">
+          <p className="text-lg font-serif italic text-ink">
+            “A reader lives a thousand lives before he dies.”
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>— George R.R. Martin</p>
+          <p className="text-sm font-sans mt-3 tracking-wide uppercase text-ink opacity-70">
+            — George R.R. Martin
+          </p>
         </div>
       </div>
 
@@ -274,41 +300,37 @@ const Login = () => {
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2.5 mb-10 justify-center">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'var(--accent)' }}>
-              <BookOpen size={17} style={{ color: 'var(--accent-fg)' }} />
-            </div>
-            <span className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>ReadSphere</span>
+          <div className="flex lg:hidden items-center gap-3 mb-12 justify-center hairline-b pb-6">
+            <BookOpen size={20} style={{ color: 'var(--c-library-green)' }} />
+            <span className="text-xl font-bold font-serif text-ink">ReadSphere</span>
           </div>
 
-          {/* Tab switcher with sliding indicator */}
-          <div className="relative flex rounded-lg p-1 mb-8"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-            <div className="absolute top-1 bottom-1 rounded-md"
+          {/* Plain text tab switcher with underline indicator */}
+          <div className="relative flex mb-10 hairline-b">
+            <div className="absolute bottom-[-1px] h-[2px]"
               style={{
                 left: indicator.left,
                 width: indicator.width,
-                background: 'var(--accent)',
-                transition: 'left 220ms cubic-bezier(0.4,0,0.2,1), width 220ms cubic-bezier(0.4,0,0.2,1)',
+                background: 'var(--c-library-green)',
+                transition: 'left 220ms ease, width 220ms ease',
               }} />
             {TABS.map(({ id, label }) => (
               <button key={id} ref={el => (tabRefs.current[id] = el)} type="button" onClick={() => switchTab(id)}
-                className="relative z-10 flex-1 py-2 rounded-md text-xs font-semibold transition-colors duration-150"
-                style={{ color: tab === id ? 'var(--accent-fg)' : 'var(--text-muted)' }}>
+                className="relative z-10 flex-1 py-3 text-sm font-medium transition-colors font-sans uppercase tracking-wider"
+                style={{ color: tab === id ? 'var(--c-ink)' : 'var(--c-rule-line)' }}>
                 {label}
               </button>
             ))}
           </div>
 
           {/* Heading */}
-          <div className="mb-7 form-fade" key={`heading-${tab}`}>
-            <h2 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
-              {tab === 'login'    ? 'Welcome back'       :
-               tab === 'register' ? 'Create an account'  :
-                                    'Admin access'}
+          <div className="mb-8 form-fade" key={`heading-${tab}`}>
+            <h2 className="text-3xl font-serif mb-2 text-ink">
+              {tab === 'login'    ? 'Welcome back.'      :
+               tab === 'register' ? 'Create an account.' :
+                                    'Admin access.'}
             </h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm font-sans text-ink opacity-70">
               {tab === 'login'    ? 'Sign in to continue your reading journey.' :
                tab === 'register' ? 'Join ReadSphere and start reading today.'  :
                                     'Restricted to authorised administrators.'}
@@ -317,45 +339,41 @@ const Login = () => {
 
           {/* Redirect message */}
           {redirectMsg && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-              <BookOpen size={14} style={{ color: 'var(--text-muted)' }} />
+            <div className="mb-6 p-4 hairline-all text-sm flex items-center gap-3 font-sans bg-white">
+              <BookOpen size={16} style={{ color: 'var(--c-faded-gold)' }} />
               {redirectMsg}
             </div>
           )}
 
           {/* Admin hint */}
           {isAdmin && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-xs flex items-start gap-2"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-              <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
-              <span>Admin accounts are provisioned manually. Contact your workspace owner if you believe you should have access.</span>
+            <div className="mb-6 p-4 hairline-all text-xs flex items-start gap-3 font-sans bg-white">
+              <ShieldCheck size={16} className="shrink-0 mt-0.5" style={{ color: 'var(--c-faded-gold)' }} />
+              <span className="opacity-80 leading-relaxed">Admin accounts are provisioned manually. Contact your workspace owner if you believe you should have access.</span>
             </div>
           )}
 
-          {/* Error / Success — color-coded so status is readable at a glance */}
+          {/* Error / Success — Flat, hairline borders */}
           {error && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2 form-fade"
-              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#dc2626' }}>
-              <AlertCircle size={14} className="shrink-0" /> {error}
+            <div className="mb-6 p-4 hairline-all text-sm flex items-center gap-3 form-fade font-sans" style={{ borderColor: '#ef4444', color: '#b91c1c', backgroundColor: '#fef2f2' }}>
+              <AlertCircle size={16} className="shrink-0" /> {error}
             </div>
           )}
           {success && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2 form-fade"
-              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#16a34a' }}>
-              <Check size={14} className="shrink-0" /> {success}
+            <div className="mb-6 p-4 hairline-all text-sm flex items-center gap-3 form-fade font-sans" style={{ borderColor: 'var(--c-library-green)', color: 'var(--c-library-green)', backgroundColor: 'rgba(46,64,52,0.05)' }}>
+              <Check size={16} className="shrink-0" /> {success}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={isAdmin ? handleAdmin : handleUser} className="space-y-4">
+          <form onSubmit={isAdmin ? handleAdmin : handleUser} className="space-y-5">
 
             {/* Username — register only */}
             {tab === 'register' && (
               <Field label="Username">
                 <InputIcon icon={User}>
                   <input name="username" type="text" value={form.username} onChange={handle}
-                    placeholder="John Doe" autoComplete="username" className="input" />
+                    placeholder="John Doe" autoComplete="username" />
                 </InputIcon>
               </Field>
             )}
@@ -365,7 +383,7 @@ const Login = () => {
               <InputIcon icon={Mail}>
                 <input name="email" type="email" value={form.email} onChange={handle}
                   placeholder={isAdmin ? 'admin@yourcompany.com' : 'you@example.com'}
-                  autoComplete="email" className="input" />
+                  autoComplete="email" />
               </InputIcon>
             </Field>
 
@@ -374,29 +392,27 @@ const Login = () => {
               <InputIcon icon={Lock}
                 right={
                   <button type="button" onClick={() => setShowPass(p => !p)}
-                    style={{ color: 'var(--text-muted)' }}
-                    className="hover:opacity-70 transition-opacity">
+                    className="text-rule-line hover:text-ink transition-colors cursor-pointer">
                     {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 }>
                 <input name="password" type={showPass ? 'text' : 'password'} value={form.password} onChange={handle}
-                  placeholder="••••••••" autoComplete={tab === 'register' ? 'new-password' : 'current-password'}
-                  className="input" />
+                  placeholder="••••••••" autoComplete={tab === 'register' ? 'new-password' : 'current-password'} />
               </InputIcon>
 
               {/* Password strength meter — register only */}
               {tab === 'register' && form.password && (
-                <div className="pt-1.5">
+                <div className="pt-2">
                   <div className="flex gap-1">
                     {[0, 1, 2, 3].map(i => (
-                      <div key={i} className="h-1 flex-1 rounded-full"
+                      <div key={i} className="h-[2px] flex-1"
                         style={{
-                          background: i < strength ? STRENGTH_META[strength].color : 'var(--border-subtle)',
+                          background: i < strength ? STRENGTH_META[strength].color : 'var(--c-rule-line)',
                           transition: 'background 200ms ease',
                         }} />
                     ))}
                   </div>
-                  <p className="text-[11px] mt-1" style={{ color: STRENGTH_META[strength].color || 'var(--text-muted)' }}>
+                  <p className="text-[10px] uppercase tracking-wider mt-1.5 font-bold" style={{ color: STRENGTH_META[strength].color || 'var(--c-rule-line)' }}>
                     {STRENGTH_META[strength].label}
                   </p>
                 </div>
@@ -409,24 +425,22 @@ const Login = () => {
                 <InputIcon icon={Lock}
                   right={
                     <button type="button" onClick={() => setShowConfirm(p => !p)}
-                      style={{ color: 'var(--text-muted)' }}
-                      className="hover:opacity-70 transition-opacity">
+                      className="text-rule-line hover:text-ink transition-colors cursor-pointer">
                       {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   }>
                   <input name="confirm" type={showConfirm ? 'text' : 'password'} value={form.confirm} onChange={handle}
-                    placeholder="••••••••" autoComplete="new-password" className="input" />
+                    placeholder="••••••••" autoComplete="new-password" />
                 </InputIcon>
               </Field>
             )}
 
             {/* Forgot password — login only */}
             {tab === 'login' && (
-              <div className="flex justify-end -mt-1">
+              <div className="flex justify-end -mt-2">
                 <button type="button"
                   onClick={() => navigate('/forgot-password')}
-                  className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--text-muted)' }}>
+                  className="text-xs font-medium font-sans underline decoration-rule-line underline-offset-4 hover:decoration-ink transition-colors text-ink opacity-70 hover:opacity-100">
                   Forgot password?
                 </button>
               </div>
@@ -434,7 +448,7 @@ const Login = () => {
 
             {/* Submit */}
             <button type="submit" disabled={loading}
-              className="btn btn-primary btn-lift w-full justify-center py-2.5 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="btn-primary w-full flex justify-center py-3 mt-4 text-sm font-medium tracking-wide uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -457,22 +471,19 @@ const Login = () => {
           {/* Google OAuth — user tabs only */}
           {!isAdmin && (
             <>
-              <div className="relative my-5">
+              <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+                  <div className="w-full hairline-t" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="px-3 text-xs" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)' }}>
-                    or continue with
+                  <span className="px-4 text-xs font-sans uppercase tracking-widest bg-paper-white text-rule-line">
+                    or
                   </span>
                 </div>
               </div>
 
               <a href={`${API_URL}/api/auth/google`}
-                className="btn-lift flex items-center justify-center gap-3 w-full py-2.5 rounded-lg text-sm font-medium"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-default)'}>
+                className="btn-outline flex items-center justify-center gap-3 w-full py-3 text-sm font-medium tracking-wide font-sans">
                 {/* Google G icon */}
                 <svg width="16" height="16" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -487,24 +498,18 @@ const Login = () => {
 
           {/* Switch tab hint */}
           {!isAdmin && (
-            <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="mt-8 text-center text-sm font-sans text-ink opacity-80">
               {tab === 'login' ? (
                 <>Don't have an account?{' '}
                   <button onClick={() => switchTab('register')}
-                    className="font-semibold transition-colors"
-                    style={{ color: 'var(--text-primary)' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    className="font-medium underline decoration-rule-line underline-offset-4 hover:decoration-ink transition-colors cursor-pointer">
                     Create one
                   </button>
                 </>
               ) : (
                 <>Already have an account?{' '}
                   <button onClick={() => switchTab('login')}
-                    className="font-semibold transition-colors"
-                    style={{ color: 'var(--text-primary)' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    className="font-medium underline decoration-rule-line underline-offset-4 hover:decoration-ink transition-colors cursor-pointer">
                     Sign in
                   </button>
                 </>
