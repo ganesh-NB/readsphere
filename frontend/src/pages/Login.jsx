@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, Shield } from 'lucide-react';
+import { BookOpen, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, AlertCircle, ShieldCheck } from 'lucide-react';
 
-const ADMIN_EMAIL    = 'ganesh@readsphere.com';
-const ADMIN_PASSWORD = 'Ganesh@123';
-const API_URL        = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 /* ── Book covers shown on the left panel ──────────────────────────────────── */
 const COVERS = [
@@ -25,6 +23,12 @@ const FEATURES = [
   'Upload & share your own books',
 ];
 
+const TABS = [
+  { id: 'login',    label: 'Sign In'  },
+  { id: 'register', label: 'Register' },
+  { id: 'admin',    label: 'Admin'    },
+];
+
 /* ── Shared input wrapper ─────────────────────────────────────────────────── */
 const Field = ({ label, children }) => (
   <div className="space-y-1.5">
@@ -41,7 +45,7 @@ const InputIcon = ({ icon: Icon, children, right }) => (
       <Icon size={15} style={{ color: 'var(--text-muted)' }} />
     </div>
     {React.cloneElement(children, {
-      className: `${children.props.className || ''} pl-9 ${right ? 'pr-10' : ''}`,
+      className: `${children.props.className || ''} pl-9 ${right ? 'pr-10' : ''} focus-ring`,
     })}
     {right && (
       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -50,6 +54,24 @@ const InputIcon = ({ icon: Icon, children, right }) => (
     )}
   </div>
 );
+
+/* ── Password strength helper (register tab only) ─────────────────────────── */
+const getStrength = (pwd) => {
+  if (!pwd) return 0;
+  let score = 0;
+  if (pwd.length >= 6) score++;
+  if (pwd.length >= 10) score++;
+  if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+  if (/\d/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score++;
+  return Math.min(score, 4);
+};
+const STRENGTH_META = [
+  { label: '',          color: 'transparent' },
+  { label: 'Weak',      color: '#ef4444' },
+  { label: 'Fair',      color: '#f59e0b' },
+  { label: 'Good',      color: '#3b82f6' },
+  { label: 'Strong',    color: '#22c55e' },
+];
 
 /* ── Main component ───────────────────────────────────────────────────────── */
 const Login = () => {
@@ -64,10 +86,29 @@ const Login = () => {
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
   const [form,            setForm]            = useState({ username: '', email: '', password: '', confirm: '' });
+  const [coverIndex,      setCoverIndex]      = useState(0);
+
+  const tabRefs = useRef({});
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 
   const handle = (e) => { setForm(p => ({ ...p, [e.target.name]: e.target.value })); setError(''); };
   const reset  = ()  => { setForm({ username: '', email: '', password: '', confirm: '' }); setError(''); setSuccess(''); setShowPass(false); setShowConfirm(false); };
   const switchTab = (t) => { setTab(t); reset(); };
+
+  const isAdmin = tab === 'admin';
+  const strength = getStrength(form.password);
+
+  /* Sliding tab indicator */
+  useEffect(() => {
+    const el = tabRefs.current[tab];
+    if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [tab]);
+
+  /* Subtle auto-rotating accent cover on the left panel */
+  useEffect(() => {
+    const id = setInterval(() => setCoverIndex(i => (i + 1) % COVERS.length), 3500);
+    return () => clearInterval(id);
+  }, []);
 
   /* ── Admin login ──────────────────────────────────────────────────────── */
   const handleAdmin = async (e) => {
@@ -78,18 +119,12 @@ const Login = () => {
     if (!email || !pass) { setError('Both fields are required.'); return; }
     setLoading(true);
     try {
-
       const res = await fetch(`${API_URL}/api/auth/login`, {
-     method: 'POST',
-     credentials: 'include',
-      headers: {
-    'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-    email,
-    password: pass
-     }),
-   });
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Invalid credentials.');
       if (data.user?.role !== 'admin') throw new Error('This account does not have admin access.');
@@ -151,10 +186,26 @@ const Login = () => {
     } finally { setLoading(false); }
   };
 
-  const isAdmin = tab === 'admin';
-
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
+
+      {/* Local styles for focus rings, transitions & animations */}
+      <style>{`
+        .focus-ring { transition: box-shadow 150ms ease, border-color 150ms ease; }
+        .focus-ring:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+        }
+        .btn-lift { transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease; }
+        .btn-lift:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .btn-lift:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+        .form-fade { animation: formFadeIn 220ms ease; }
+        @keyframes formFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .cover-tile { transition: opacity 500ms ease, transform 500ms ease; }
+        .feature-item { animation: featureIn 400ms ease both; }
+        @keyframes featureIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
 
       {/* ── LEFT: Visual panel ──────────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
@@ -182,8 +233,9 @@ const Login = () => {
             <span className="text-gradient">Think deeper.</span>
           </h1>
           <ul className="space-y-3 mb-10">
-            {FEATURES.map(f => (
-              <li key={f} className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {FEATURES.map((f, i) => (
+              <li key={f} className="feature-item flex items-center gap-3 text-sm"
+                style={{ color: 'var(--text-secondary)', animationDelay: `${i * 90}ms` }}>
                 <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                   style={{ background: 'var(--bg-surface-elevated)' }}>
                   <Check size={11} style={{ color: 'var(--text-primary)' }} />
@@ -193,11 +245,15 @@ const Login = () => {
             ))}
           </ul>
 
-          {/* Book cover grid */}
+          {/* Book cover grid — one tile gently pulses to keep the panel alive */}
           <div className="grid grid-cols-3 gap-2.5 max-w-xs">
             {COVERS.slice(0, 9).map((src, i) => (
-              <div key={i} className="aspect-[2/3] rounded-lg overflow-hidden"
-                style={{ border: '1px solid var(--border-subtle)', opacity: 0.7 + (i % 3) * 0.1 }}>
+              <div key={i} className="cover-tile aspect-[2/3] rounded-lg overflow-hidden"
+                style={{
+                  border: '1px solid var(--border-subtle)',
+                  opacity: i === coverIndex ? 1 : 0.7 + (i % 3) * 0.1,
+                  transform: i === coverIndex ? 'scale(1.04)' : 'scale(1)',
+                }}>
                 <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
               </div>
             ))}
@@ -226,27 +282,27 @@ const Login = () => {
             <span className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>ReadSphere</span>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex rounded-lg p-1 mb-8"
+          {/* Tab switcher with sliding indicator */}
+          <div className="relative flex rounded-lg p-1 mb-8"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-            {[
-              { id: 'login',    label: 'Sign In'  },
-              { id: 'register', label: 'Register' },
-              { id: 'admin',    label: 'Admin'    },
-            ].map(({ id, label }) => (
-              <button key={id} onClick={() => switchTab(id)}
-                className="flex-1 py-2 rounded-md text-xs font-semibold transition-all duration-150"
-                style={{
-                  background: tab === id ? 'var(--accent)' : 'transparent',
-                  color:      tab === id ? 'var(--accent-fg)' : 'var(--text-muted)',
-                }}>
+            <div className="absolute top-1 bottom-1 rounded-md"
+              style={{
+                left: indicator.left,
+                width: indicator.width,
+                background: 'var(--accent)',
+                transition: 'left 220ms cubic-bezier(0.4,0,0.2,1), width 220ms cubic-bezier(0.4,0,0.2,1)',
+              }} />
+            {TABS.map(({ id, label }) => (
+              <button key={id} ref={el => (tabRefs.current[id] = el)} type="button" onClick={() => switchTab(id)}
+                className="relative z-10 flex-1 py-2 rounded-md text-xs font-semibold transition-colors duration-150"
+                style={{ color: tab === id ? 'var(--accent-fg)' : 'var(--text-muted)' }}>
                 {label}
               </button>
             ))}
           </div>
 
           {/* Heading */}
-          <div className="mb-7">
+          <div className="mb-7 form-fade" key={`heading-${tab}`}>
             <h2 className="text-2xl font-bold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
               {tab === 'login'    ? 'Welcome back'       :
                tab === 'register' ? 'Create an account'  :
@@ -270,24 +326,24 @@ const Login = () => {
 
           {/* Admin hint */}
           {isAdmin && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-xs space-y-0.5"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
-              <p className="font-semibold text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-              </p>
+            <div className="mb-5 px-4 py-3 rounded-lg text-xs flex items-start gap-2"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+              <ShieldCheck size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
+              <span>Admin accounts are provisioned manually. Contact your workspace owner if you believe you should have access.</span>
             </div>
           )}
 
-          {/* Error / Success */}
+          {/* Error / Success — color-coded so status is readable at a glance */}
           {error && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}>
-              {error}
+            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2 form-fade"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#dc2626' }}>
+              <AlertCircle size={14} className="shrink-0" /> {error}
             </div>
           )}
           {success && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
-              <Check size={14} /> {success}
+            <div className="mb-5 px-4 py-3 rounded-lg text-sm flex items-center gap-2 form-fade"
+              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#16a34a' }}>
+              <Check size={14} className="shrink-0" /> {success}
             </div>
           )}
 
@@ -308,7 +364,7 @@ const Login = () => {
             <Field label="Email address">
               <InputIcon icon={Mail}>
                 <input name="email" type="email" value={form.email} onChange={handle}
-                  placeholder={isAdmin ? ADMIN_EMAIL : 'you@example.com'}
+                  placeholder={isAdmin ? 'admin@yourcompany.com' : 'you@example.com'}
                   autoComplete="email" className="input" />
               </InputIcon>
             </Field>
@@ -327,6 +383,24 @@ const Login = () => {
                   placeholder="••••••••" autoComplete={tab === 'register' ? 'new-password' : 'current-password'}
                   className="input" />
               </InputIcon>
+
+              {/* Password strength meter — register only */}
+              {tab === 'register' && form.password && (
+                <div className="pt-1.5">
+                  <div className="flex gap-1">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className="h-1 flex-1 rounded-full"
+                        style={{
+                          background: i < strength ? STRENGTH_META[strength].color : 'var(--border-subtle)',
+                          transition: 'background 200ms ease',
+                        }} />
+                    ))}
+                  </div>
+                  <p className="text-[11px] mt-1" style={{ color: STRENGTH_META[strength].color || 'var(--text-muted)' }}>
+                    {STRENGTH_META[strength].label}
+                  </p>
+                </div>
+              )}
             </Field>
 
             {/* Confirm password — register only */}
@@ -346,9 +420,21 @@ const Login = () => {
               </Field>
             )}
 
+            {/* Forgot password — login only */}
+            {tab === 'login' && (
+              <div className="flex justify-end -mt-1">
+                <button type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-xs font-medium hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--text-muted)' }}>
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {/* Submit */}
             <button type="submit" disabled={loading}
-              className="btn btn-primary w-full justify-center py-2.5 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="btn btn-primary btn-lift w-full justify-center py-2.5 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -383,7 +469,7 @@ const Login = () => {
               </div>
 
               <a href={`${API_URL}/api/auth/google`}
-                className="flex items-center justify-center gap-3 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+                className="btn-lift flex items-center justify-center gap-3 w-full py-2.5 rounded-lg text-sm font-medium"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-default)'}>
